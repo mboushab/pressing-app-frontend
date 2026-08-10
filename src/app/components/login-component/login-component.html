@@ -1,0 +1,59 @@
+<div
+  class="border-2 border-solid border-gray-300 w-full max-w-md mx-auto h-auto flex flex-col items-start gap-4 p-6 rounded-lg shadow-lg bg-white mt-8"
+>
+  <h1 class="text-3xl font-bold underline self-center mb-4">Login</h1>
+
+  <form [formGroup]="userForm" (ngSubmit)="onLogin()" class="flex flex-col gap-4 w-full">
+    <div class="flex flex-col rounded-lg border border-gray-200 p-3 focus-within:border-blue-500">
+      <label class="mb-1 font-medium text-gray-700">Username:</label>
+      <input
+        type="text"
+        placeholder="Username"
+        class="bg-transparent border-gray-300 focus:outline-none py-2 px-2"
+        formControlName="username"
+      />
+      <p
+        class="text-red-500"
+        *ngIf="userForm.get('username')?.invalid && userForm.get('username')?.touched"
+      >
+        {{ userForm.get('username')?.errors?.['required'] ? 'Username is required.' : '' }}
+        {{
+          userForm.get('username')?.errors?.['minlength']
+            ? 'Username must be at least 3 characters.'
+            : ''
+        }}
+      </p>
+    </div>
+    <div class="flex flex-col rounded-lg border border-gray-200 p-3 focus-within:border-blue-500">
+      <label class="mb-1 font-medium text-gray-700">Password:</label>
+      <input
+        type="password"
+        placeholder="Password"
+        class="bg-transparent border-gray-300 focus:outline-none py-2 px-2"
+        formControlName="password"
+      />
+      <p
+        class="text-red-500"
+        *ngIf="userForm.get('password')?.invalid && userForm.get('password')?.touched"
+      >
+        {{ userForm.get('password')?.errors?.['required'] ? 'Password is required.' : '' }}
+        {{
+          userForm.get('password')?.errors?.['minlength']
+            ? 'Password must be at least 6 characters.'
+            : ''
+        }}
+      </p>
+    </div>
+    <p class="text-red-500" *ngIf="error">{{ error }}</p>
+
+    <button
+      type="submit"
+      [disabled]="userForm.invalid"
+      class="bg-cyan-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors"
+      [class.opacity-50]="userForm.invalid"
+      [class.cursor-not-allowed]="userForm.invalid"
+    >
+      Login
+    </button>
+  </form>
+</div>

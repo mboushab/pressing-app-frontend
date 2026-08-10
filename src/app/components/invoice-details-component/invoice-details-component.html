@@ -1,0 +1,21 @@
+<h2 class="text-xl font-bold mt-8 mb-4">Invoice Details</h2>
+
+<strong> Selected Invoice Index : {{ invoiceID() }}</strong>
+
+@if (selectedInvoice()) {
+  <div class="bg-white p-4 rounded shadow">
+    <p><strong>Invoice ID:</strong> {{ selectedInvoice()?.id }}</p>
+    <p><strong>Client ID:</strong> {{ selectedInvoice()?.client_id }}</p>
+    <p><strong>Amount:</strong> {{ selectedInvoice()?.amount | currency }}</p>
+    <p><strong>Status:</strong> {{ selectedInvoice()?.status }}</p>
+    <ul>
+      @for (item of selectedInvoice()?.details; track $index) {
+        <li>
+          <strong>Production {{ item.product }}</strong>
+        </li>
+      }
+    </ul>
+  </div>
+} @else {
+  <div class="text-sm text-gray-500">Select an invoice to see details.</div>
+}

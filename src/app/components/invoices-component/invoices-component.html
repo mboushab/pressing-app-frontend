@@ -1,0 +1,66 @@
+<section [class]="classNames.container">
+  <div class="flex justify-center mb-4 gap-4">
+    <app-search-component
+      class="w-1/2"
+      [(search)]="searchText"
+      [placeholder]="'Search by Phone number'"
+    ></app-search-component>
+    <button
+      [class]="classNames.buttonPrimary + ' cursor-pointer'"
+      (click)="showCreateForm.set(true)"
+    >
+      Create Invoice
+    </button>
+  </div>
+
+  <table class="w-full border-collapse">
+    <thead>
+      <tr>
+        <th class="py-2 px-4 border-b border-gray-200">Invoice Number</th>
+        <th class="py-2 px-4 border-b border-gray-200">Client Name</th>
+        <th class="py-2 px-4 border-b border-gray-200">Total Amount</th>
+        <th class="py-2 px-4 border-b border-gray-200">Status</th>
+        <th class="py-2 px-4 border-b border-gray-200">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (invoice of invoices(); track invoice.id) {
+        <tr class="hover:bg-gray-100 cursor-pointer" (click)="onSelectedInvoiceChange(invoice.id)">
+          <td class="py-2 px-4 border-b border-gray-200">{{ invoice.id }}</td>
+          <td class="py-2 px-4 border-b border-gray-200">{{ invoice.clientId }}</td>
+          <td class="py-2 px-4 border-b border-gray-200">{{ invoice.amount | currency }}</td>
+          <td class="py-2 px-4 border-b border-gray-200">{{ invoice.status }}</td>
+          <td class="py-2 px-4 border-b border-gray-200">
+            @if (userService.getUserRole().toLowerCase() === 'admin' && invoice.id) {
+              <button
+                [class]="classNames.buttonDanger + ' ml-2'"
+                (click)="deleteInvoice(invoice.id); $event.stopPropagation()"
+              >
+                Delete
+              </button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <ng-template #noInvoices>
+    <div class="text-center text-gray-500 mt-8">
+      No invoices found. Please create an invoice to get started.
+    </div>
+  </ng-template>
+
+  <!-- Create Invoice Form -->
+  @if (showCreateForm()) {
+    <app-create-invoice
+      (closeForm)="showCreateForm.set(false)"
+      [currentUserId]="invoiceID()"
+    ></app-create-invoice>
+  }
+
+  <!-- Invoice Details -->
+  @if (invoiceID()) {
+    <app-invoice-details [invoiceID]="invoiceID()"></app-invoice-details>
+  }
+</section>

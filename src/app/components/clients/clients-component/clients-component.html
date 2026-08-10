@@ -1,0 +1,94 @@
+<section [class]="classNames.container">
+  <div class="flex justify-center mb-4 gap-4">
+    @if (clients().length > 0) {
+      <app-search-component
+        class="w-1/2"
+        [(search)]="queryText"
+        [placeholder]="'Search by Phone number'"
+        (searchChange)="filterBySearch($event)"
+      ></app-search-component>
+    }
+    <button [class]="classNames.buttonPrimary" (click)="openNewClientForm()">Create Client</button>
+  </div>
+
+  <table class="min-w-full bg-white border border-gray-200">
+    <thead>
+      <tr>
+        <th class="py-2 px-4 border-b border-gray-200">Name</th>
+        <th class="py-2 px-4 border-b border-gray-200">Phone Number</th>
+        <th class="py-2 px-4 border-b border-gray-200">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (client of clients(); track client.id) {
+        <tr class="hover:bg-gray-100 cursor-pointer">
+          <td class="py-2 px-4 border-b border-gray-200">{{ client.name | uppercase }}</td>
+          <td class="py-2 px-4 border-b border-gray-200">{{ client.phone_number }}</td>
+          <td class="py-2 px-4 border-b border-gray-200">
+            @if (userService.getUserRole().toLowerCase() === 'admin' && client.id) {
+              <button [class]="classNames.buttonDanger + ' ml-2'" (click)="deleteClient(client.id)">
+                Delete
+              </button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  <ng-template #noClients>
+    <div class="text-center text-gray-500 mt-8">
+      No clients found. Please add a client to get started.
+    </div>
+  </ng-template>
+
+  <ng-template #clientForm>
+    <div class="absolute w-1/2 h-full right-0 top-0 bg-gray-100">
+      <div class="p-4">
+        <h2 class="text-xl font-bold text-center">Create New Client</h2>
+      </div>
+
+      <form [formGroup]="form" (submit)="submitCreateForm()" class="mt-4 p-4 rounded">
+        <div class="mb-4">
+          <label for="name" class="block text-gray-700 mb-2">Name</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            formControlName="name"
+            required
+            class="w-full border border-gray-300 rounded px-3 py-2"
+          />
+        </div>
+        <div class="mb-4">
+          <label for="phone" class="block text-gray-700 mb-2">Phone Number</label>
+          <input
+            type="text"
+            id="phone"
+            name="phone"
+            formControlName="phone_number"
+            required
+            class="w-full border border-gray-300 rounded px-3 py-2"
+          />
+        </div>
+        @if (form.invalid && form.touched) {
+          <div class="text-red-500 mb-4">Please fill out all required fields.</div>
+        }
+        @if (errorMessage) {
+          <div class="text-red-500 mb-4">{{ errorMessage }}</div>
+        }
+        <div class="flex justify-center">
+          <button type="submit" [class]="classNames.buttonPrimary" [disabled]="form.invalid">
+            Save
+          </button>
+          <button
+            type="button"
+            [class]="classNames.buttonWarning + ' ml-2'"
+            (click)="closeNewClientForm()"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </ng-template>
+</section>

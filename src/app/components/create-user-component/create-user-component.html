@@ -1,0 +1,76 @@
+<div class="flex justify-center">
+  <form
+    [formGroup]="userForm"
+    (ngSubmit)="createUser()"
+    class="flex flex-col gap-4 w-full max-w-md mx-auto mt-8"
+  >
+    <h1 class="text-3xl font-bold underline self-center mb-4">Create User</h1>
+    <div class="flex flex-col rounded-lg border border-gray-200 p-3 focus-within:border-blue-500">
+      <label class="mb-1 font-medium text-gray-700">Username:</label>
+      <input
+        type="text"
+        placeholder="Username"
+        class="bg-transparent border-gray-300 focus:outline-none py-2 px-2"
+        formControlName="username"
+      />
+      <p
+        class="text-red-500"
+        *ngIf="userForm.get('username')?.invalid && userForm.get('username')?.touched"
+      >
+        {{
+          userForm.get('username')?.errors?.['required']
+            ? 'Username is required.'
+            : 'Username must be at least 3 characters long.'
+        }}
+      </p>
+    </div>
+    <div class="flex flex-col rounded-lg border border-gray-200 p-3 focus-within:border-blue-500">
+      <label class="mb-1 font-medium text-gray-700">Password:</label>
+      <input
+        type="password"
+        placeholder="Password"
+        class="bg-transparent border-gray-300 focus:outline-none py-2 px-2"
+        formControlName="password"
+      />
+      <p
+        class="text-red-500"
+        *ngIf="userForm.get('password')?.invalid && userForm.get('password')?.touched"
+      >
+        {{
+          userForm.get('password')?.errors?.['required']
+            ? 'Password is required.'
+            : 'Password must be at least 3 characters long.'
+        }}
+      </p>
+    </div>
+    <div class="flex flex-col rounded-lg border border-gray-200 p-3 focus-within:border-blue-500">
+      <label class="mb-1 font-medium text-gray-700">Role:</label>
+      <select
+        formControlName="role"
+        class="bg-transparent border-gray-300 focus:outline-none py-2 px-2"
+      >
+        <option value="" disabled>Select a role</option>
+        <option value="ADMIN">ADMIN</option>
+        <option value="USER">USER</option>
+      </select>
+      <p
+        class="text-red-500"
+        *ngIf="userForm.get('role')?.invalid && userForm.get('role')?.touched"
+      >
+        Role is required.
+      </p>
+    </div>
+    <p class="text-red-500" *ngIf="error">
+      {{ error }}
+    </p>
+    <button
+      type="submit"
+      [disabled]="userForm.invalid"
+      class="bg-cyan-700 text-white py-2 px-4 rounded-lg font-semibold transition-colors"
+      [class.opacity-50]="userForm.invalid"
+      [class.cursor-not-allowed]="userForm.invalid"
+    >
+      Create User
+    </button>
+  </form>
+</div>
