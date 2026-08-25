@@ -28,7 +28,6 @@ export class CreateUserComponent {
   }
 
   createUser(): void {
-    console.log(this.userForm.value);
     this.userService.addNewUser(this.userForm.value).subscribe(
       (next) => {
         if (next.success) {

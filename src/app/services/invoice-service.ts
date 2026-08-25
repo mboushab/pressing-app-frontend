@@ -1,4 +1,4 @@
-import { inject, Injectable, Signal, WritableSignal } from '@angular/core';
+import { inject, Injectable, Signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
   catchError,
@@ -11,7 +11,7 @@ import {
   Subject,
   switchMap,
 } from 'rxjs';
-import { Invoice, InvoiceDetails } from '../types/invoice';
+import { CreateInvoicePayload, Invoice, InvoiceDetails } from '../types/invoice';
 import { HttpClient } from '@angular/common/http';
 
 @Injectable({
@@ -59,6 +59,25 @@ export class InvoiceService {
   getInvoiceDetails(id: string | null): Observable<InvoiceDetails | null> {
     if (id === null) return of(null);
     return this.http.get<InvoiceDetails>(`/api/invoices/${id}`);
+  }
+
+  createInvoice(payload: CreateInvoicePayload): Observable<{ invoiceId: string }> {
+    return this.http.post<{ invoiceId: string }>('/api/invoices/create-invoice', payload);
+  }
+
+  updateClothesStatus(
+    invoiceId: string,
+    clothes_status: 'not_cleaned' | 'cleaned',
+  ): Observable<void> {
+    return this.http.patch<void>(`/api/invoices/${invoiceId}`, { clothes_status });
+  }
+
+  updatePaymentStatus(
+    invoiceId: string,
+    payment_status: 'not_paid' | 'partial_paid' | 'paid',
+    paid_amount?: number,
+  ): Observable<void> {
+    return this.http.patch<void>(`/api/invoices/${invoiceId}`, { payment_status, paid_amount });
   }
 
   updateInvoiceList(): void {

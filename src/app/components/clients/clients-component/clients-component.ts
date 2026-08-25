@@ -1,12 +1,5 @@
-import {
-  Component,
-  inject,
-  signal,
-  effect,
-  TemplateRef,
-  ViewChild,
-  ViewContainerRef,
-} from '@angular/core';
+import { Component, inject, signal, effect } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Client } from '../../../types/authenticate';
 import { CommonModule } from '@angular/common';
 import { ClientsService } from '../../../services/clients-service';
@@ -36,7 +29,6 @@ import { SearchComponent } from '../../search-component/search-component';
 })
 export class ClientsComponent {
   private readonly clientsService = inject(ClientsService);
-  private viewContainer = inject(ViewContainerRef);
   public userService = inject(UserService);
   private readonly fprmBuilder = inject(FormBuilder);
 
@@ -61,7 +53,7 @@ export class ClientsComponent {
 
   classNames = classNames;
 
-  @ViewChild('clientForm') clientForm!: TemplateRef<any>;
+  showClientForm = signal(false);
 
   form: FormGroup = this.fprmBuilder.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
@@ -73,30 +65,34 @@ export class ClientsComponent {
   readonly clients = toSignal(this.result$, { initialValue: [] as Client[] });
 
   openNewClientForm(): void {
-    this.viewContainer.createEmbeddedView(this.clientForm);
+    this.showClientForm.set(true);
   }
 
   closeNewClientForm(): void {
-    this.viewContainer.clear();
+    this.showClientForm.set(false);
     this.form.reset();
+    this.errorMessage = null;
   }
 
   filterBySearch(query: string): void {
     console.log('Search query:', query);
   }
-  submitCreateForm(): void {
+  submitCreateForm(event: Event): void {
+    event.preventDefault();
     this.clientsService
       .createClient({
         name: this.form.value.name,
         phone_number: this.form.value.phone_number,
       })
       .subscribe({
-        next: (v) => {
+        next: () => {
+          this.errorMessage = null;
           this.refresh$.next();
           this.closeNewClientForm();
         },
-        error: (error) => {
-          this.errorMessage = error.error.message || 'An error occurred while creating the client.';
+        error: (error: HttpErrorResponse) => {
+          this.errorMessage =
+            error.error?.message || 'An error occurred while creating the client.';
         },
       });
   }
