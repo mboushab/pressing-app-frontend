@@ -59,6 +59,11 @@ export class InvoicesComponent {
     this.invoiceID.set(index);
   }
 
+  setClothesStatus($event: Event, invoiceId: string): void {
+    const status = ($event.target as HTMLSelectElement).value as 'cleaned' | 'not_cleaned';
+    this.invoiceService.updateClothesStatus(invoiceId, status);
+  }
+
   onSearch(query: string): void {
     console.log('Searching for:', query);
     // Implement the logic to filter invoices based on the search query

@@ -1,21 +1,93 @@
-<h2 class="text-xl font-bold mt-8 mb-4">Invoice Details</h2>
+@if (selectedInvoice(); as invoice) {
+  <div class="bg-white p-4 rounded shadow mt-6 space-y-3">
+    <h2 class="text-xl font-bold mb-2">Invoice Details</h2>
 
-<strong> Selected Invoice Index : {{ invoiceID() }}</strong>
+    <p><strong>Invoice ID:</strong> {{ invoice.client.phone_number }}</p>
+    <p><strong>Client:</strong> {{ invoice.client.name }} ({{ invoice.client.phone_number }})</p>
+    <p><strong>Amount:</strong> {{ invoice.amount | currency }}</p>
+    <p><strong>Paid:</strong> {{ invoice.paid_amount | currency }}</p>
 
-@if (selectedInvoice()) {
-  <div class="bg-white p-4 rounded shadow">
-    <p><strong>Invoice ID:</strong> {{ selectedInvoice()?.id }}</p>
-    <p><strong>Client ID:</strong> {{ selectedInvoice()?.client_id }}</p>
-    <p><strong>Amount:</strong> {{ selectedInvoice()?.amount | currency }}</p>
-    <p><strong>Status:</strong> {{ selectedInvoice()?.status }}</p>
-    <ul>
-      @for (item of selectedInvoice()?.details; track $index) {
-        <li>
-          <strong>Production {{ item.product }}</strong>
-        </li>
+    <!-- Clothes Status -->
+    <div class="flex items-center gap-3 flex-wrap">
+      <span class="font-semibold">Clothes:</span>
+      <span
+        class="px-2 py-0.5 rounded text-sm font-medium"
+        [class]="
+          invoice.clothes_status === 'cleaned'
+            ? 'bg-blue-100 text-blue-700'
+            : 'bg-yellow-100 text-yellow-700'
+        "
+      >
+        {{ invoice.clothes_status }}
+      </span>
+      @if (invoice.clothes_status === 'cleaned') {
+        <button
+          class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+          (click)="setClothesStatus('cleaned')"
+        >
+          Mark as Cleaned
+        </button>
       }
-    </ul>
+      @if (invoice.clothes_status === 'not_cleaned') {
+        <button
+          class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600"
+          (click)="setClothesStatus('not_cleaned')"
+        >
+          Mark as Pending
+        </button>
+      }
+    </div>
+
+    @if (showPartialForm()) {
+      <div class="flex items-center gap-2">
+        <input
+          type="number"
+          [formControl]="partialAmountControl"
+          placeholder="Amount paid"
+          min="0"
+          class="border border-gray-300 rounded px-2 py-1 w-32 focus:outline-none"
+        />
+        <button
+          class="bg-orange-500 text-white px-3 py-1 rounded text-sm hover:bg-orange-600"
+          (click)="submitPartialPayment()"
+        >
+          Save
+        </button>
+        <button class="text-gray-500 text-sm underline" (click)="showPartialForm.set(false)">
+          Cancel
+        </button>
+      </div>
+    }
+
+    @if (successMessage()) {
+      <p class="text-green-600 text-sm">{{ successMessage() }}</p>
+    }
+    @if (errorMessage()) {
+      <p class="text-red-500 text-sm">{{ errorMessage() }}</p>
+    }
+
+    <!-- Items table -->
+    <table class="w-full text-sm border-collapse mt-2">
+      <thead>
+        <tr class="bg-gray-100 text-left">
+          <th class="px-3 py-2 border border-gray-200">Product</th>
+          <th class="px-3 py-2 border border-gray-200">Qty</th>
+          <th class="px-3 py-2 border border-gray-200">Unit Price</th>
+          <th class="px-3 py-2 border border-gray-200">Line Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of invoice.details; track $index) {
+          <tr class="border border-gray-200">
+            <td class="px-3 py-2">{{ item.product }}</td>
+            <td class="px-3 py-2">{{ item.quantity }}</td>
+            <td class="px-3 py-2">{{ item.unit_price | currency }}</td>
+            <td class="px-3 py-2">{{ item.line_total | currency }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
   </div>
 } @else {
-  <div class="text-sm text-gray-500">Select an invoice to see details.</div>
+  <div class="text-sm text-gray-500 mt-4">Select an invoice to see details.</div>
 }

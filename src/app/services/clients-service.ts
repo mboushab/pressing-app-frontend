@@ -13,6 +13,10 @@ export class ClientsService {
     return this.http.get<Client[]>('/api/clients');
   }
 
+  searchClients(query: string): Observable<Client[]> {
+    return this.http.get<Client[]>(`/api/clients?search=${encodeURIComponent(query)}`);
+  }
+
   createClient(client: Client): Observable<any> {
     return this.http.post('/api/clients/create-client', client, {
       headers: {

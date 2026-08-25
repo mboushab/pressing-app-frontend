@@ -9,18 +9,18 @@ export class ClothesList {
   private http = inject(HttpClient);
 
   getClothes() {
-    return this.http.get('http://localhost:3000/api/clothes');
+    return this.http.get<Clothe[]>('/api/clothes');
   }
 
-  updateClothes(clothes: Clothe, id: number) {
-    return this.http.put(`http://localhost:3000/api/clothes/${id}`, clothes);
+  updateClothes(clothes: Partial<Pick<Clothe, 'name' | 'price'>>, id: number) {
+    return this.http.patch<Clothe>(`/api/clothes/${id}`, clothes);
   }
 
-  createClothes(clothes: Clothe) {
-    return this.http.post('http://localhost:3000/api/clothes', clothes);
+  createClothes(clothes: Pick<Clothe, 'name' | 'price'>) {
+    return this.http.post<Clothe>('/api/clothes/create', clothes);
   }
 
   deleteClothes(id: number) {
-    return this.http.delete(`http://localhost:3000/api/clothes/${id}`);
+    return this.http.delete(`/api/clothes/${id}`);
   }
 }

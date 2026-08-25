@@ -19,17 +19,43 @@
         <th class="py-2 px-4 border-b border-gray-200">Invoice Number</th>
         <th class="py-2 px-4 border-b border-gray-200">Client Name</th>
         <th class="py-2 px-4 border-b border-gray-200">Total Amount</th>
-        <th class="py-2 px-4 border-b border-gray-200">Status</th>
+        <th class="py-2 px-4 border-b border-gray-200">Clothes</th>
+        <th class="py-2 px-4 border-b border-gray-200">Payment</th>
         <th class="py-2 px-4 border-b border-gray-200">Actions</th>
       </tr>
     </thead>
     <tbody>
       @for (invoice of invoices(); track invoice.id) {
         <tr class="hover:bg-gray-100 cursor-pointer" (click)="onSelectedInvoiceChange(invoice.id)">
-          <td class="py-2 px-4 border-b border-gray-200">{{ invoice.id }}</td>
-          <td class="py-2 px-4 border-b border-gray-200">{{ invoice.clientId }}</td>
+          <td class="py-2 px-4 border-b border-gray-200">{{ invoice.client.phone_number }}</td>
+          <td class="py-2 px-4 border-b border-gray-200">
+            {{ invoice.client.name }}
+          </td>
           <td class="py-2 px-4 border-b border-gray-200">{{ invoice.amount | currency }}</td>
-          <td class="py-2 px-4 border-b border-gray-200">{{ invoice.status }}</td>
+          <td class="py-2 px-4 border-b border-gray-200">
+            <select
+              class="ml-2 border border-gray-300 rounded px-2 py-1 focus:outline-none"
+              (change)="setClothesStatus($event, invoice.id)"
+              [value]="invoice.clothes_status"
+            >
+              <option value="cleaned">Cleaned</option>
+              <option value="not_cleaned">Not Cleaned</option>
+            </select>
+          </td>
+          <td class="py-2 px-4 border-b border-gray-200">
+            <span
+              class="px-2 py-0.5 rounded text-sm font-medium"
+              [class]="
+                invoice.status === 'paid'
+                  ? 'bg-green-100 text-green-700'
+                  : invoice.status === 'partial_paid'
+                    ? 'bg-orange-100 text-orange-700'
+                    : 'bg-red-100 text-red-700'
+              "
+            >
+              {{ invoice.status }}
+            </span>
+          </td>
           <td class="py-2 px-4 border-b border-gray-200">
             @if (userService.getUserRole().toLowerCase() === 'admin' && invoice.id) {
               <button
