@@ -21,9 +21,9 @@ export class CreateUserComponent {
   ngOnInit(): void {
     // initialize the form with form controls for user creation
     this.userForm = this.formBuilder.group({
-      username: ['', Validators.required, Validators.minLength(3)],
-      password: ['', Validators.required, Validators.minLength(3)],
-      role: [['USER', 'ADMIN'], Validators.required],
+      username: ['', [Validators.required, Validators.minLength(3)]],
+      password: ['', [Validators.required, Validators.minLength(3)]],
+      role: ['USER', Validators.required],
     });
   }
 

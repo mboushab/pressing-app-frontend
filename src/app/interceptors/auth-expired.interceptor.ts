@@ -26,10 +26,8 @@ export const authExpiredInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(requestToSend).pipe(
     catchError((err: unknown) => {
-      if (
-        err instanceof HttpErrorResponse &&
-        (err.status === 401 || err.status === 403)
-      ) {
+      // 401 = missing/invalid/expired token; 403 = logged in but not allowed
+      if (err instanceof HttpErrorResponse && err.status === 401) {
         localStorage.removeItem('authToken');
         void router.navigate(['/login']);
       }
