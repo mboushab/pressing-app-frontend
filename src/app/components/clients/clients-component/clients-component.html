@@ -1,94 +1,98 @@
 <section [class]="classNames.container">
-  <div class="flex justify-center mb-4 gap-4">
-    @if (clients().length > 0) {
-      <app-search-component
-        class="w-1/2"
-        [(search)]="queryText"
-        [placeholder]="'Search by Phone number'"
-        (searchChange)="filterBySearch($event)"
-      ></app-search-component>
-    }
-    <button [class]="classNames.buttonPrimary" (click)="openNewClientForm()">Create Client</button>
+  <div [class]="classNames.pageHeader">
+    <h1 [class]="classNames.pageTitle">Clients</h1>
+    <button [class]="classNames.buttonPrimary" (click)="openNewClientForm()">
+      <mat-icon>person_add</mat-icon> New client
+    </button>
   </div>
 
-  <table class="min-w-full bg-white border border-gray-200">
-    <thead>
-      <tr>
-        <th class="py-2 px-4 border-b border-gray-200">Name</th>
-        <th class="py-2 px-4 border-b border-gray-200">Phone Number</th>
-        <th class="py-2 px-4 border-b border-gray-200">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (client of clients(); track client.id) {
-        <tr class="hover:bg-gray-100 cursor-pointer">
-          <td class="py-2 px-4 border-b border-gray-200">{{ client.name | uppercase }}</td>
-          <td class="py-2 px-4 border-b border-gray-200">{{ client.phone_number }}</td>
-          <td class="py-2 px-4 border-b border-gray-200">
-            @if (userService.getUserRole().toLowerCase() === 'admin' && client.id) {
-              <button [class]="classNames.buttonDanger + ' ml-2'" (click)="deleteClient(client.id)">
-                Delete
-              </button>
-            }
-          </td>
+  <app-search-component
+    class="block w-full sm:w-72 mb-4"
+    [(search)]="queryText"
+    placeholder="Search by name or phone"
+  />
+
+  <div [class]="classNames.card + ' overflow-x-auto'">
+    <table [class]="classNames.table">
+      <thead>
+        <tr>
+          <th [class]="classNames.th">Name</th>
+          <th [class]="classNames.th">Phone</th>
+          <th [class]="classNames.th"><span class="sr-only">Actions</span></th>
         </tr>
-      }
-    </tbody>
-  </table>
-  <ng-template #noClients>
-    <div class="text-center text-gray-500 mt-8">
-      No clients found. Please add a client to get started.
-    </div>
-  </ng-template>
+      </thead>
+      <tbody>
+        @for (client of clients(); track client.id) {
+          <tr class="hover:bg-slate-50">
+            <td [class]="classNames.td + ' font-medium text-slate-800'">{{ client.name }}</td>
+            <td [class]="classNames.td">{{ client.phone_number }}</td>
+            <td [class]="classNames.td + ' text-right'">
+              @if (isAdmin) {
+                <button
+                  type="button"
+                  [class]="classNames.iconButtonDanger"
+                  title="Delete client"
+                  aria-label="Delete client"
+                  (click)="deleteClient(client)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="3" [class]="classNames.empty">
+              @if (!loaded()) {
+                Loading…
+              } @else if (queryText()) {
+                No client matches “{{ queryText() }}”.
+              } @else {
+                No clients yet. Click <strong>New client</strong> to add one.
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 
   @if (showClientForm()) {
-    <div class="absolute w-1/2 h-full right-0 top-0 bg-gray-100">
-      <div class="p-4">
-        <h2 class="text-xl font-bold text-center">Create New Client</h2>
-      </div>
-
-      <form [formGroup]="form" (submit)="submitCreateForm($event)" class="mt-4 p-4 rounded">
-        <div class="mb-4">
-          <label for="name" class="block text-gray-700 mb-2">Name</label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            formControlName="name"
-            required
-            class="w-full border border-gray-300 rounded px-3 py-2"
-          />
+    <app-drawer title="New client" (closed)="closeNewClientForm()">
+      <form [formGroup]="form" (ngSubmit)="submitCreateForm()" class="space-y-4">
+        <div>
+          <label for="name" [class]="classNames.label">Name</label>
+          <input id="name" type="text" formControlName="name" [class]="classNames.input" autofocus />
+          @if (form.controls.name.invalid && form.controls.name.touched) {
+            <p [class]="classNames.fieldError">At least 3 characters.</p>
+          }
         </div>
-        <div class="mb-4">
-          <label for="phone" class="block text-gray-700 mb-2">Phone Number</label>
+        <div>
+          <label for="phone" [class]="classNames.label">Phone number</label>
           <input
-            type="text"
             id="phone"
-            name="phone"
+            type="tel"
+            inputmode="numeric"
+            placeholder="8 digits"
             formControlName="phone_number"
-            required
-            class="w-full border border-gray-300 rounded px-3 py-2"
+            [class]="classNames.input"
           />
+          @if (form.controls.phone_number.invalid && form.controls.phone_number.touched) {
+            <p [class]="classNames.fieldError">The phone number must have 8 digits.</p>
+          }
         </div>
-        @if (form.invalid && form.touched) {
-          <div class="text-red-500 mb-4">Please fill out all required fields.</div>
+        @if (errorMessage()) {
+          <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
         }
-        @if (errorMessage) {
-          <div class="text-red-500 mb-4">{{ errorMessage }}</div>
-        }
-        <div class="flex justify-center">
-          <button type="submit" [class]="classNames.buttonPrimary" [disabled]="form.invalid">
-            Save
-          </button>
-          <button
-            type="button"
-            [class]="classNames.buttonWarning + ' ml-2'"
-            (click)="closeNewClientForm()"
-          >
+        <div class="flex justify-end gap-2">
+          <button type="button" [class]="classNames.buttonSecondary" (click)="closeNewClientForm()">
             Cancel
+          </button>
+          <button type="submit" [class]="classNames.buttonPrimary" [disabled]="saving()">
+            {{ saving() ? 'Saving…' : 'Add client' }}
           </button>
         </div>
       </form>
-    </div>
+    </app-drawer>
   }
 </section>

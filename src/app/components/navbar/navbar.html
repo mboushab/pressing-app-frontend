@@ -1,58 +1,42 @@
-<div class="bg-slate-600 border-gray-300 pb-4 h-24 flex items-center justify-center">
-  <h1 class="text-2xl font-bold text-zinc-50 text-center">My clean app: 33 38 36 13</h1>
-</div>
-<div class="bg-slate-500 h-20 pt-2.5 text-center">
-  <nav>
-    <a
-      routerLink="/app/home"
-      routerLinkActive="active"
-      ariaCurrentWhenActive="page"
-      [routerLinkActiveOptions]="{ exact: true }"
-      class="rounded-md px-3 py-1 font-medium text-gray-300 cursor-pointer hover:bg-white/20 hover:text-white"
-    >
-      Home</a
-    >
-    <a
-      routerLink="/app/invoices"
-      routerLinkActive="active"
-      ariaCurrentWhenActive="page"
-      [routerLinkActiveOptions]="{ exact: true }"
-      class="rounded-md px-3 py-1 font-medium text-gray-300 cursor-pointer hover:bg-white/20 hover:text-white"
-      >Invoices</a
-    >
-    <a
-      routerLink="/app/clothes"
-      routerLinkActive="active"
-      ariaCurrentWhenActive="page"
-      [routerLinkActiveOptions]="{ exact: true }"
-      class="rounded-md px-3 py-1 font-medium text-gray-300 cursor-pointer hover:bg-white/20 hover:text-white"
-      >Clothes</a
-    >
-    <a
-      routerLink="/app/clients"
-      routerLinkActive="active"
-      ariaCurrentWhenActive="page"
-      [routerLinkActiveOptions]="{ exact: true }"
-      class="rounded-md px-3 py-1 font-medium text-gray-300 cursor-pointer hover:bg-white/20 hover:text-white"
-      >Clients</a
-    >
-    @if (userService.getUserRole().toLowerCase() === 'admin') {
-      <a
-        routerLink="/app/users"
-        routerLinkActive="active"
-        ariaCurrentWhenActive="page"
-        [routerLinkActiveOptions]="{ exact: true }"
-        class="rounded-md px-3 py-1 font-medium text-gray-300 cursor-pointer hover:bg-white/20 hover:text-white"
-        >Users</a
-      >
-    }
-  </nav>
+<header class="sticky top-0 z-30 bg-slate-800 text-white shadow">
+  <div class="max-w-6xl mx-auto flex flex-wrap md:flex-nowrap items-center gap-x-4 gap-y-2 px-4 py-3">
+    <a routerLink="/app/home" class="flex shrink-0 items-center gap-2" aria-label="My clean app, dashboard">
+      <mat-icon class="text-cyan-300">local_laundry_service</mat-icon>
+      <span class="font-semibold text-lg leading-tight">My clean app</span>
+      <span class="hidden xl:inline text-sm text-slate-400">· 33 38 36 13</span>
+    </a>
 
-  <button
-    class="absolute flex gap-1 right-2.5 top-2.5 bg-red-600 border-none rounded-md px-3 py-1 font-medium text-gray-300 cursor-pointer hover:bg-red-700 hover:text-white"
-    (click)="onLogout()"
-  >
-    <mat-icon class="text-gray-300">logout</mat-icon>
-    <span>logout</span>
-  </button>
-</div>
+    <div class="ml-auto flex shrink-0 items-center gap-2 md:order-last">
+      <span class="hidden xl:flex items-center gap-1 text-sm text-slate-300">
+        <mat-icon class="!text-lg !size-5">account_circle</mat-icon>
+        {{ username }}
+        @if (isAdmin) {
+          <span class="rounded bg-cyan-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase">admin</span>
+        }
+      </span>
+      <button
+        type="button"
+        class="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm text-slate-300 cursor-pointer hover:bg-white/10 hover:text-white"
+        aria-label="Logout"
+        (click)="onLogout()"
+      >
+        <mat-icon class="!text-lg !size-5">logout</mat-icon>
+        <span>Logout</span>
+      </button>
+    </div>
+
+    <nav class="order-last flex w-full gap-1 overflow-x-auto [scrollbar-width:none] md:order-none md:w-auto md:flex-1">
+      @for (link of links; track link.path) {
+        <a
+          [routerLink]="link.path"
+          routerLinkActive="bg-white/15 text-white"
+          ariaCurrentWhenActive="page"
+          class="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white"
+        >
+          <mat-icon class="!text-lg !size-5">{{ link.icon }}</mat-icon>
+          {{ link.label }}
+        </a>
+      }
+    </nav>
+  </div>
+</header>

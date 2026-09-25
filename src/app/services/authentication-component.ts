@@ -9,20 +9,17 @@ export class AuthenticationService {
   constructor(private http: HttpClient) {}
 
   isAuthenticated(): boolean {
-    // Implement your authentication logic here
-    // For example, check if a valid token exists in local storage
-    const token = localStorage.getItem('authToken');
-    return !!token; // Return true if token exists, false otherwise
+    return !!localStorage.getItem('authToken');
   }
 
   login(username: string, password: string): Observable<any> {
-    // send login request to server and get token
-    return this.http.post('http://localhost:3000/api/users/login', { username, password });
+    return this.http.post('/api/users/login', { username, password });
   }
 
-  logout(): Observable<any> {
-    // Clear the authentication token from local storage
+  logout(): Observable<boolean> {
     localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUserRole');
+    localStorage.removeItem('currentUsername');
     return of(true);
   }
 }

@@ -34,7 +34,7 @@ export class InvoiceService {
         of(query()),
         this.refresh$.pipe(map(() => query())),
         toObservable(query).pipe(
-          debounceTime(2000),
+          debounceTime(300),
           distinctUntilChanged(),
           map(() => query()),
         ),
@@ -52,14 +52,8 @@ export class InvoiceService {
     );
   }
 
-  deleteInvoice(invoiceId: string, claback: () => void) {
-    return this.http.delete(`/api/invoices/${invoiceId}`).subscribe({
-      next: () => {
-        confirm('Deleting invoices sucesss ');
-        claback();
-      },
-      error: (error) => console.error('Error while deleting ' + error),
-    });
+  deleteInvoice(invoiceId: string): Observable<unknown> {
+    return this.http.delete(`/api/invoices/${invoiceId}`);
   }
 
   getInvoiceDetails(id: string | null): Observable<InvoiceDetails | null> {

@@ -1,14 +1,12 @@
-<div class="flex items-center px-4 py-2 w-full">
+<div class="relative w-full">
+  <mat-icon class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+    >search</mat-icon
+  >
   <input
-    type="text"
+    type="search"
     [placeholder]="placeholder()"
-    [class]="classNames.input"
+    [attr.aria-label]="placeholder()"
+    [class]="classNames.input + ' pl-10'"
     [(ngModel)]="search"
   />
-  <button
-    type="button"
-    class="border-b border-t border-r border-gray-300 bg-white rounded px-3 py-1.5"
-  >
-    <mat-icon>search</mat-icon>
-  </button>
 </div>

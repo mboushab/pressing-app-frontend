@@ -1,84 +1,99 @@
 <section [class]="classNames.container">
-  <div class="flex justify-center mb-4">
-    <button [class]="classNames.buttonPrimary" (click)="openCreateForm()">Add Clothing</button>
+  <div [class]="classNames.pageHeader">
+    <div>
+      <h1 [class]="classNames.pageTitle">Prices</h1>
+      <p class="text-sm text-slate-500">Items and prices offered when creating an invoice.</p>
+    </div>
+    <button [class]="classNames.buttonPrimary" (click)="openCreateForm()">
+      <mat-icon>add</mat-icon> New item
+    </button>
   </div>
 
-  <table class="w-full border-collapse">
-    <thead>
-      <tr>
-        <th class="py-2 px-4 border-b border-gray-200 text-left">Name</th>
-        <th class="py-2 px-4 border-b border-gray-200 text-left">Price</th>
-        <th class="py-2 px-4 border-b border-gray-200 text-left">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (clothe of clothes(); track clothe.id) {
-        <tr class="hover:bg-gray-100">
-          <td class="py-2 px-4 border-b border-gray-200">{{ clothe.name }}</td>
-          <td class="py-2 px-4 border-b border-gray-200">{{ clothe.price | currency }}</td>
-          <td class="py-2 px-4 border-b border-gray-200 flex gap-2">
-            <button [class]="classNames.buttonWarning" (click)="openEditForm(clothe)">Edit</button>
-            <button [class]="classNames.buttonDanger" (click)="delete(clothe.id)">Delete</button>
-          </td>
-        </tr>
-      } @empty {
+  <div [class]="classNames.card + ' overflow-x-auto'">
+    <table [class]="classNames.table">
+      <thead>
         <tr>
-          <td colspan="3" class="py-4 text-center text-gray-500">No clothing items found.</td>
+          <th [class]="classNames.th">Item</th>
+          <th [class]="classNames.th + ' text-right'">Price</th>
+          <th [class]="classNames.th"><span class="sr-only">Actions</span></th>
         </tr>
-      }
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        @for (clothe of clothes(); track clothe.id) {
+          <tr class="hover:bg-slate-50">
+            <td [class]="classNames.td + ' font-medium text-slate-800'">{{ clothe.name }}</td>
+            <td [class]="classNames.td + ' text-right'">{{ clothe.price | currency }}</td>
+            <td [class]="classNames.td + ' text-right whitespace-nowrap'">
+              <button
+                type="button"
+                [class]="classNames.iconButton"
+                title="Edit"
+                [attr.aria-label]="'Edit ' + clothe.name"
+                (click)="openEditForm(clothe)"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                type="button"
+                [class]="classNames.iconButtonDanger"
+                title="Remove"
+                [attr.aria-label]="'Remove ' + clothe.name"
+                (click)="delete(clothe)"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="3" [class]="classNames.empty">
+              {{ loaded() ? 'No items yet. Add the first one with “New item”.' : 'Loading…' }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 
   @if (showForm()) {
-    <div class="absolute w-1/2 h-full right-0 top-0 bg-gray-100 overflow-y-auto">
-      <div class="p-4">
-        <h2 class="text-xl font-bold text-center">
-          {{ editingId() !== null ? 'Edit Clothing' : 'Add Clothing' }}
-        </h2>
-      </div>
-
-      <form [formGroup]="form" (ngSubmit)="submit()" class="mt-4 p-4 space-y-4">
+    <app-drawer [title]="editingId() !== null ? 'Edit item' : 'New item'" (closed)="closeForm()">
+      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
         <div>
-          <label class="block text-gray-700 mb-2">Name</label>
+          <label for="clothe-name" [class]="classNames.label">Name</label>
           <input
+            id="clothe-name"
             type="text"
             formControlName="name"
-            class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none"
+            [class]="classNames.input"
             placeholder="e.g. Shirt"
+            autofocus
           />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <p class="text-red-500 text-sm mt-1">Name is required (min 2 characters).</p>
+          @if (form.controls.name.invalid && form.controls.name.touched) {
+            <p [class]="classNames.fieldError">At least 2 characters.</p>
           }
         </div>
-
         <div>
-          <label class="block text-gray-700 mb-2">Price</label>
+          <label for="clothe-price" [class]="classNames.label">Price</label>
           <input
+            id="clothe-price"
             type="number"
             formControlName="price"
             min="0"
-            step="0.01"
-            class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none"
-            placeholder="e.g. 5.50"
+            step="1"
+            [class]="classNames.input"
           />
-          @if (form.get('price')?.invalid && form.get('price')?.touched) {
-            <p class="text-red-500 text-sm mt-1">A valid price is required.</p>
+          @if (form.controls.price.invalid && form.controls.price.touched) {
+            <p [class]="classNames.fieldError">Enter a price of 0 or more.</p>
           }
         </div>
-
         @if (errorMessage()) {
-          <p class="text-red-500">{{ errorMessage() }}</p>
+          <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
         }
-
-        <div class="flex justify-center gap-2">
-          <button type="submit" [class]="classNames.buttonPrimary" [disabled]="form.invalid">
-            Save
-          </button>
-          <button type="button" [class]="classNames.buttonWarning" (click)="closeForm()">
-            Cancel
-          </button>
+        <div class="flex justify-end gap-2">
+          <button type="button" [class]="classNames.buttonSecondary" (click)="closeForm()">Cancel</button>
+          <button type="submit" [class]="classNames.buttonPrimary">Save</button>
         </div>
       </form>
-    </div>
+    </app-drawer>
   }
 </section>

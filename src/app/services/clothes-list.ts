@@ -12,7 +12,7 @@ export class ClothesList {
     return this.http.get<Clothe[]>('/api/clothes');
   }
 
-  updateClothes(clothes: Partial<Pick<Clothe, 'name' | 'price'>>, id: number) {
+  updateClothes(clothes: Partial<Pick<Clothe, 'name' | 'price'>>, id: string) {
     return this.http.patch<Clothe>(`/api/clothes/${id}`, clothes);
   }
 
@@ -20,7 +20,7 @@ export class ClothesList {
     return this.http.post<Clothe>('/api/clothes/create', clothes);
   }
 
-  deleteClothes(id: number) {
+  deleteClothes(id: string) {
     return this.http.delete(`/api/clothes/${id}`);
   }
 }

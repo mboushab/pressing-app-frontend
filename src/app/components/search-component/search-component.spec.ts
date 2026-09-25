@@ -13,6 +13,7 @@ describe('SearchComponent', () => {
 
     fixture = TestBed.createComponent(SearchComponent);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('placeholder', 'Search');
     await fixture.whenStable();
   });
 

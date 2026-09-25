@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, Subject, switchMap, startWith, shareReplay } from 'rxjs';
+import { Observable } from 'rxjs';
 import { Client } from '../types/authenticate';
 
 @Injectable({
@@ -17,12 +17,8 @@ export class ClientsService {
     return this.http.get<Client[]>(`/api/clients?search=${encodeURIComponent(query)}`);
   }
 
-  createClient(client: Client): Observable<any> {
-    return this.http.post('/api/clients/create-client', client, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  createClient(client: Client): Observable<{ clientId: string }> {
+    return this.http.post<{ clientId: string }>('/api/clients/create-client', client);
   }
 
   deleteClient(id: string | undefined): Observable<any> {

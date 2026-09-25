@@ -1,78 +1,121 @@
-import { Component, computed, inject, signal, effect, WritableSignal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { CurrencyPipe, DatePipe } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
+import { MatIcon } from '@angular/material/icon';
 import { ClothesStatus, Invoice } from '../../types/invoice';
-import { CurrencyPipe } from '@angular/common';
 import { UserService } from '../../services/user-sevice';
+import { InvoiceService } from '../../services/invoice-service';
 import { classNames } from '../../shared/styles/class-names';
+import {
+  clothesStatusClass,
+  clothesStatusLabel,
+  paymentStatusClass,
+  paymentStatusLabel,
+} from '../../shared/status';
+import { ToastService } from '../../shared/toast/toast.service';
+import { Drawer } from '../../shared/drawer/drawer';
 import { CreateInvoice } from '../create-invoice/create-invoice';
 import { SearchComponent } from '../search-component/search-component';
 import { InvoiceDetailsComponent } from '../invoice-details-component/invoice-details-component';
-import { HttpClient } from '@angular/common/http';
-import { rxResource, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import {
-  BehaviorSubject,
-  catchError,
-  debounce,
-  debounceTime,
-  distinctUntilChanged,
-  map,
-  merge,
-  of,
-  Subject,
-  switchMap,
-  switchMapTo,
-} from 'rxjs';
-import { InvoiceService } from '../../services/invoice-service';
+
+type InvoiceFilter = 'all' | 'to_clean' | 'ready' | 'unpaid';
 
 @Component({
   selector: 'app-invoices-component',
-  imports: [CurrencyPipe, CreateInvoice, SearchComponent, InvoiceDetailsComponent],
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    MatIcon,
+    CreateInvoice,
+    SearchComponent,
+    InvoiceDetailsComponent,
+    Drawer,
+  ],
   templateUrl: './invoices-component.html',
   styleUrl: './invoices-component.css',
-  standalone: true,
 })
 export class InvoicesComponent {
-  readonly userService = inject(UserService);
-  readonly invoiceService = inject(InvoiceService);
+  private readonly invoiceService = inject(InvoiceService);
+  private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
+  readonly isAdmin = inject(UserService).isAdmin();
 
-  readonly http = inject(HttpClient);
-  showCreateForm: WritableSignal<boolean> = signal(false);
+  readonly classNames = classNames;
+  readonly paymentStatusLabel = paymentStatusLabel;
+  readonly paymentStatusClass = paymentStatusClass;
+  readonly clothesStatusLabel = clothesStatusLabel;
+  readonly clothesStatusClass = clothesStatusClass;
 
-  invoiceID = signal<string | null>(null);
-
-  searchText = signal('');
+  // ?new=1 (from the dashboard) opens the create form directly
+  readonly showCreateForm = signal(
+    inject(ActivatedRoute).snapshot.queryParamMap.get('new') === '1',
+  );
+  readonly invoiceID = signal<string | null>(null);
+  readonly searchText = signal('');
+  readonly filter = signal<InvoiceFilter>('all');
 
   readonly invoices = this.invoiceService.getAllInvoice(this.searchText);
 
-  classNames = classNames;
+  private readonly matchers: Record<InvoiceFilter, (i: Invoice) => boolean> = {
+    all: () => true,
+    to_clean: (i) => i.clothes_status === 'not_cleaned',
+    ready: (i) => i.clothes_status === 'cleaned',
+    unpaid: (i) => i.status !== 'paid',
+  };
 
-  createInvoice(): void {
-    console.log('creating invoice');
+  readonly filters = computed(() => {
+    const list = this.invoices();
+    return (
+      [
+        ['all', 'All'],
+        ['to_clean', 'To clean'],
+        ['ready', 'Ready'],
+        ['unpaid', 'Unpaid'],
+      ] as [InvoiceFilter, string][]
+    ).map(([key, label]) => ({ key, label, count: list.filter(this.matchers[key]).length }));
+  });
+
+  readonly visibleInvoices = computed(() => this.invoices().filter(this.matchers[this.filter()]));
+
+  balance(invoice: Invoice): number {
+    return Number(invoice.amount) - Number(invoice.paid_amount);
   }
 
-  deleteInvoice(id: string): void {
-    this.invoiceService.deleteInvoice(id, () => {
-      this.invoiceService.updateInvoiceList();
-    });
+  openCreateForm(): void {
+    this.showCreateForm.set(true);
   }
 
-  onSelectedInvoiceChange(index: string): void {
-    this.invoiceID.set(index);
+  closeCreateForm(): void {
+    this.showCreateForm.set(false);
+    void this.router.navigate([], { queryParams: {} });
   }
 
-  setClothesStatus($event: Event, invoice: Invoice): void {
-    const select = $event.target as HTMLSelectElement;
-    const status = select.value as ClothesStatus;
-    this.invoiceService.updateClothesStatus(invoice.id, status).subscribe({
-      next: () => this.invoiceService.updateInvoiceList(),
-      error: (error) => {
-        console.error('Error while updating clothes status', error);
-        select.value = invoice.clothes_status;
+  onInvoiceCreated(invoiceId: string): void {
+    this.closeCreateForm();
+    this.toast.success('Invoice created.');
+    this.invoiceID.set(invoiceId);
+  }
+
+  toggleClothesStatus(invoice: Invoice): void {
+    const next: ClothesStatus = invoice.clothes_status === 'cleaned' ? 'not_cleaned' : 'cleaned';
+    this.invoiceService.updateClothesStatus(invoice.id, next).subscribe({
+      next: () => {
+        this.toast.success(`${invoice.client.name}: ${clothesStatusLabel[next].toLowerCase()}.`);
+        this.invoiceService.updateInvoiceList();
       },
+      error: () => this.toast.error('Could not update the clothes status.'),
     });
   }
 
-  onSearch(query: string): void {
-    console.log('Searching for:', query);
-    // Implement the logic to filter invoices based on the search query
+  deleteInvoice(invoice: Invoice): void {
+    if (!confirm(`Delete the invoice of ${invoice.client.name}? This cannot be undone.`)) return;
+    this.invoiceService.deleteInvoice(invoice.id).subscribe({
+      next: () => {
+        if (this.invoiceID() === invoice.id) this.invoiceID.set(null);
+        this.toast.success('Invoice deleted.');
+        this.invoiceService.updateInvoiceList();
+      },
+      error: () => this.toast.error('Could not delete the invoice.'),
+    });
   }
 }

@@ -1,129 +1,189 @@
-<div class="absolute w-1/2 h-full right-0 top-0 bg-gray-100 overflow-y-auto">
-  <div class="p-4">
-    <h2 class="text-xl font-bold text-center">Create New Invoice</h2>
-  </div>
-
-  <form [formGroup]="invoiceForm" (ngSubmit)="onSubmit()" class="p-4 space-y-4">
-    <!-- Client autocomplete -->
-    <div class="mb-4 relative">
-      <label class="block text-gray-700 mb-2">Client</label>
+<form (submit)="$event.preventDefault(); onSubmit()" class="space-y-5">
+  <!-- 1. Client -->
+  <div [class]="classNames.card + ' p-4'">
+    <label for="client-search" [class]="classNames.label">1. Client</label>
+    <div class="relative">
       <input
+        id="client-search"
         type="text"
         [formControl]="clientSearch"
         placeholder="Search by name or phone"
-        class="w-full border border-gray-300 rounded px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        (focus)="showClientDropdown.set(true)"
+        [class]="classNames.input + (selectedClient() ? ' border-green-600 bg-green-50' : '')"
+        (focus)="showClientDropdown.set(!selectedClient())"
+        (input)="onClientInput()"
         (blur)="showClientDropdown.set(false)"
         autocomplete="off"
       />
-      @if (showClientDropdown() && filteredClients().length > 0) {
+      @if (selectedClient()) {
+        <button
+          type="button"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+          aria-label="Change client"
+          (click)="clearClient()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+      @if (showClientDropdown()) {
         <ul
-          class="absolute z-10 w-full bg-white border border-gray-300 rounded shadow mt-1 max-h-48 overflow-y-auto"
+          class="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
         >
           @for (client of filteredClients(); track client.id) {
             <li
-              class="px-3 py-2 cursor-pointer hover:bg-blue-50 flex justify-between"
+              class="flex cursor-pointer justify-between px-3 py-2 hover:bg-cyan-50"
               (mousedown)="selectClient(client)"
             >
               <span>{{ client.name }}</span>
-              <span class="text-gray-400 text-sm">{{ client.phone_number }}</span>
+              <span class="text-sm text-slate-400">{{ client.phone_number }}</span>
             </li>
+          } @empty {
+            <li class="px-3 py-2 text-sm text-slate-500">No client found.</li>
           }
+          <li
+            class="flex cursor-pointer items-center gap-1 border-t border-slate-100 px-3 py-2 text-cyan-700 hover:bg-cyan-50"
+            (mousedown)="openNewClient()"
+          >
+            <mat-icon class="!text-lg !size-5">person_add</mat-icon> New client
+          </li>
         </ul>
       }
-      @if (selectedClient()) {
-        <p class="text-sm text-green-600 mt-1">
-          Selected: {{ selectedClient()!.name }} — {{ selectedClient()!.phone_number }}
-        </p>
+    </div>
+
+    @if (showNewClient()) {
+      <div class="mt-3 space-y-3 rounded-lg border border-dashed border-cyan-300 bg-cyan-50/50 p-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label for="new-client-name" [class]="classNames.label">Name</label>
+            <input id="new-client-name" [formControl]="newClientName" [class]="classNames.input" />
+            @if (newClientName.invalid && newClientName.touched) {
+              <p [class]="classNames.fieldError">At least 3 characters.</p>
+            }
+          </div>
+          <div>
+            <label for="new-client-phone" [class]="classNames.label">Phone</label>
+            <input
+              id="new-client-phone"
+              inputmode="numeric"
+              [formControl]="newClientPhone"
+              [class]="classNames.input"
+            />
+            @if (newClientPhone.invalid && newClientPhone.touched) {
+              <p [class]="classNames.fieldError">8 digits.</p>
+            }
+          </div>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" [class]="classNames.buttonSecondary" (click)="showNewClient.set(false)">
+            Cancel
+          </button>
+          <button type="button" [class]="classNames.buttonPrimary" (click)="createClient()">
+            Add client
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- 2. Items -->
+  <div [class]="classNames.card + ' p-4'">
+    <p [class]="classNames.label">2. Items</p>
+    <ul class="divide-y divide-slate-100">
+      @for (clothe of clothes(); track clothe.id) {
+        <li class="flex items-center gap-3 py-2" [class.font-medium]="quantity(clothe) > 0">
+          <div class="flex-1">
+            <p class="text-slate-800">{{ clothe.name }}</p>
+            <p class="text-xs text-slate-500">{{ clothe.price | currency }}</p>
+          </div>
+          <div class="flex items-center gap-1">
+            <button
+              type="button"
+              [class]="classNames.iconButton + ' border border-slate-200'"
+              [disabled]="quantity(clothe) === 0"
+              [attr.aria-label]="'Remove one ' + clothe.name"
+              (click)="setQuantity(clothe, quantity(clothe) - 1)"
+            >
+              <mat-icon>remove</mat-icon>
+            </button>
+            <input
+              type="number"
+              min="0"
+              class="w-12 rounded-lg border border-slate-200 py-1.5 text-center"
+              [attr.aria-label]="clothe.name + ' quantity'"
+              [value]="quantity(clothe)"
+              (change)="setQuantity(clothe, $any($event.target).value)"
+            />
+            <button
+              type="button"
+              [class]="classNames.iconButton + ' border border-slate-200'"
+              [attr.aria-label]="'Add one ' + clothe.name"
+              (click)="setQuantity(clothe, quantity(clothe) + 1)"
+            >
+              <mat-icon>add</mat-icon>
+            </button>
+          </div>
+          <span class="w-20 text-right text-sm">{{
+            quantity(clothe) > 0 ? (clothe.price * quantity(clothe) | currency) : ''
+          }}</span>
+        </li>
+      } @empty {
+        <li class="py-4 text-sm text-slate-500">
+          The price list is empty. Add items in the <strong>Prices</strong> page first.
+        </li>
+      }
+    </ul>
+    <div class="mt-3 flex justify-between border-t border-slate-200 pt-3 text-base font-semibold">
+      <span>Total ({{ itemCount() }} item{{ itemCount() === 1 ? '' : 's' }})</span>
+      <span>{{ total() | currency }}</span>
+    </div>
+  </div>
+
+  <!-- 3. Payment -->
+  <div [class]="classNames.card + ' p-4 space-y-3'">
+    <p [class]="classNames.label">3. Payment</p>
+    <div class="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1" role="radiogroup">
+      @for (option of paymentOptions; track option.value) {
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="paymentStatus() === option.value"
+          class="rounded-md px-2 py-1.5 text-sm font-medium cursor-pointer"
+          [class]="
+            paymentStatus() === option.value
+              ? 'bg-white text-slate-800 shadow-sm'
+              : 'text-slate-500 hover:text-slate-800'
+          "
+          (click)="paymentStatus.set(option.value)"
+        >
+          {{ option.label }}
+        </button>
       }
     </div>
-
-    <!-- Clothes list -->
-    <div class="mb-4">
-      <label class="block text-gray-700 mb-2">Items</label>
-      <table class="w-full text-sm border-collapse bg-white rounded">
-        <thead>
-          <tr class="bg-gray-200 text-left">
-            <th class="px-3 py-2 border border-gray-200">Clothing</th>
-            <th class="px-3 py-2 border border-gray-200">Unit Price</th>
-            <th class="px-3 py-2 border border-gray-200">Qty</th>
-            <th class="px-3 py-2 border border-gray-200">Total</th>
-          </tr>
-        </thead>
-        <tbody formArrayName="items">
-          @for (clothe of clothes(); track clothe.id; let i = $index) {
-            <tr [formGroupName]="i" class="border border-gray-200">
-              <td class="px-3 py-2">{{ clothe.name }}</td>
-              <td class="px-3 py-2">{{ clothe.price | currency }}</td>
-              <td class="px-3 py-2">
-                <input
-                  type="number"
-                  formControlName="quantity"
-                  min="0"
-                  class="w-16 border border-gray-300 rounded px-2 py-1 focus:outline-none"
-                />
-              </td>
-              <td class="px-3 py-2">{{ getItemTotal(i) | currency }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Grand Total -->
-    <div class="flex justify-end font-semibold text-base">
-      <span class="mr-4">Total:</span>
-      <span>{{ getTotal() | currency }}</span>
-    </div>
-
-    <!-- Payment status -->
-    <div class="mb-4">
-      <label class="block text-gray-700 mb-2">Payment Status</label>
-      <select
-        formControlName="payment_status"
-        class="w-full border border-gray-300 rounded px-3 py-2 bg-white focus:outline-none"
-      >
-        <option value="not_paid">Not Paid</option>
-        <option value="partial_paid">Partial Paid</option>
-        <option value="paid">Paid</option>
-      </select>
-    </div>
-
-    @if (isPartial) {
-      <div class="mb-4">
-        <label class="block text-gray-700 mb-2">Amount Paid</label>
+    @if (paymentStatus() === 'partial_paid') {
+      <div>
+        <label for="paid-amount" [class]="classNames.label">Amount received</label>
         <input
+          id="paid-amount"
           type="number"
-          formControlName="paid_amount"
           min="0"
-          [max]="getTotal()"
           step="0.01"
-          placeholder="Enter amount paid"
-          class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none"
+          [max]="total()"
+          [formControl]="paidAmount"
+          [class]="classNames.input"
         />
       </div>
     }
+  </div>
 
-    @if (errorMessage()) {
-      <p class="text-red-500 text-sm">{{ errorMessage() }}</p>
-    }
+  @if (errorMessage()) {
+    <p class="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+      <mat-icon class="!text-lg !size-5">error</mat-icon>{{ errorMessage() }}
+    </p>
+  }
 
-    <!-- Actions -->
-    <div class="flex justify-end gap-2">
-      <button
-        type="button"
-        (click)="onCancel()"
-        class="border border-gray-300 px-4 py-2 rounded hover:bg-gray-200"
-      >
-        Cancel
-      </button>
-      <button
-        type="submit"
-        [disabled]="invoiceForm.invalid"
-        class="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-      >
-        Save Invoice
-      </button>
-    </div>
-  </form>
-</div>
+  <div class="flex justify-end gap-2">
+    <button type="button" [class]="classNames.buttonSecondary" (click)="closeForm.emit()">Cancel</button>
+    <button type="submit" [class]="classNames.buttonPrimary" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Create invoice' }}
+    </button>
+  </div>
+</form>

@@ -1,4 +1,4 @@
-import { Component, input, model, output, OutputEmitterRef } from '@angular/core';
+import { Component, input, model } from '@angular/core';
 import { classNames } from '../../shared/styles/class-names';
 import { MatIcon } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
@@ -13,9 +13,7 @@ import { FormsModule } from '@angular/forms';
 export class SearchComponent {
   placeholder = input.required<string>();
 
-  search = model<string>('Initial');
-
-  searchText: string = '';
+  search = model<string>('');
 
   classNames = classNames;
 }

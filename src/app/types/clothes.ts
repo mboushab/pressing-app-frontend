@@ -1,5 +1,5 @@
 export interface Clothe {
-  id: number;
+  id: string;
   name: string;
   price: number;
 }

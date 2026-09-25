@@ -1,155 +1,186 @@
-import { Component, inject, input, OnInit, output, signal } from '@angular/core';
-import { FormArray, FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, switchMap, catchError, of } from 'rxjs';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject, OnInit, output, signal } from '@angular/core';
+import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { debounceTime, distinctUntilChanged, switchMap, catchError, of, startWith } from 'rxjs';
+import { CurrencyPipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { MatIcon } from '@angular/material/icon';
 import { ClothesList } from '../../services/clothes-list';
 import { ClientsService } from '../../services/clients-service';
 import { InvoiceService } from '../../services/invoice-service';
 import { Clothe } from '../../types/clothes';
 import { Client } from '../../types/authenticate';
+import { PaymentStatus } from '../../types/invoice';
+import { classNames } from '../../shared/styles/class-names';
+import { paymentStatusLabel } from '../../shared/status';
 
 @Component({
   selector: 'app-create-invoice',
-  imports: [ReactiveFormsModule, CommonModule],
+  imports: [ReactiveFormsModule, CurrencyPipe, MatIcon],
   templateUrl: './create-invoice.html',
   styleUrl: './create-invoice.css',
-  standalone: true,
 })
 export class CreateInvoice implements OnInit {
   private clothesService = inject(ClothesList);
   private clientsService = inject(ClientsService);
   private invoiceService = inject(InvoiceService);
 
-  userId = input.required<string | null>({
-    alias: 'currentUserId',
-  });
-
   closeForm = output<void>();
+  created = output<string>();
 
-  clothes = signal<Clothe[]>([]);
-  filteredClients = signal<Client[]>([]);
-  selectedClient = signal<Client | null>(null);
-  clientSearch = new FormControl('');
-  showClientDropdown = signal(false);
-  errorMessage = signal<string | null>(null);
+  readonly classNames = classNames;
+  readonly paymentOptions: { value: PaymentStatus; label: string }[] = (
+    ['not_paid', 'partial_paid', 'paid'] as PaymentStatus[]
+  ).map((value) => ({ value, label: paymentStatusLabel[value] }));
 
-  invoiceForm = new FormGroup({
-    clientId: new FormControl('', [Validators.required]),
-    payment_status: new FormControl<'not_paid' | 'partial_paid' | 'paid'>('not_paid', [
-      Validators.required,
-    ]),
-    clothes_status: new FormControl<'cleaned' | 'not_cleaned'>('not_cleaned', [
-      Validators.required,
-    ]),
-    paid_amount: new FormControl<number | null>(null),
-    items: new FormArray([]),
+  readonly clothes = signal<Clothe[]>([]);
+  readonly quantities = signal<Record<string, number>>({});
+  readonly selectedClient = signal<Client | null>(null);
+  readonly showClientDropdown = signal(false);
+  readonly showNewClient = signal(false);
+  readonly errorMessage = signal<string | null>(null);
+  readonly saving = signal(false);
+  readonly paymentStatus = signal<PaymentStatus>('not_paid');
+
+  readonly clientSearch = new FormControl('', { nonNullable: true });
+  readonly paidAmount = new FormControl<number | null>(null);
+  readonly newClientName = new FormControl('', {
+    nonNullable: true,
+    validators: [Validators.required, Validators.minLength(3)],
+  });
+  readonly newClientPhone = new FormControl('', {
+    nonNullable: true,
+    validators: [Validators.required, Validators.pattern(/^\d{8}$/)],
   });
 
-  selectClient(client: Client): void {
-    this.selectedClient.set(client);
-    this.clientSearch.setValue(client.name, { emitEvent: false });
-    this.invoiceForm.get('clientId')?.setValue(client.id ?? '');
-    this.showClientDropdown.set(false);
-  }
+  private readonly searchTerm = toSignal(
+    this.clientSearch.valueChanges.pipe(startWith(''), debounceTime(250), distinctUntilChanged()),
+    { initialValue: '' },
+  );
 
-  get isPartial(): boolean {
-    return this.invoiceForm.get('payment_status')?.value === 'partial_paid';
-  }
+  readonly filteredClients = toSignal(
+    this.clientSearch.valueChanges.pipe(
+      startWith(''),
+      debounceTime(250),
+      distinctUntilChanged(),
+      switchMap((q) => this.clientsService.searchClients(q).pipe(catchError(() => of([])))),
+    ),
+    { initialValue: [] as Client[] },
+  );
 
-  get items(): FormArray {
-    return this.invoiceForm.get('items') as FormArray;
-  }
+  readonly total = computed(() =>
+    this.clothes().reduce((sum, c) => sum + c.price * (this.quantities()[c.id] ?? 0), 0),
+  );
+  readonly itemCount = computed(() =>
+    Object.values(this.quantities()).reduce((sum, q) => sum + q, 0),
+  );
 
   ngOnInit(): void {
     this.clothesService.getClothes().subscribe({
-      next: (data) => {
-        this.clothes.set(data as Clothe[]);
-        this.clothes().forEach(() => {
-          this.items.push(
-            new FormGroup({
-              quantity: new FormControl(0, [Validators.min(0)]),
-            }),
-          );
-        });
-      },
-      error: (err) => console.error('Error fetching clothes', err),
-    });
-
-    this.clientSearch.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        switchMap((query) => {
-          const q = query ?? '';
-          if (this.selectedClient()?.name === q) return of(this.filteredClients());
-          this.selectedClient.set(null);
-          this.invoiceForm.get('clientId')?.setValue('');
-          this.showClientDropdown.set(true);
-          return this.clientsService.searchClients(q).pipe(catchError(() => of([])));
-        }),
-      )
-      .subscribe((data) => this.filteredClients.set(data));
-
-    // Load initial list
-    this.clientsService.searchClients('').subscribe({
-      next: (data) => this.filteredClients.set(data),
-      error: (err) => console.error('Error fetching clients', err),
+      next: (data) => this.clothes.set(data),
+      error: () => this.errorMessage.set('Could not load the price list.'),
     });
   }
 
-  getItemTotal(index: number): number {
-    const qty = this.items.at(index).get('quantity')?.value ?? 0;
-    const price = this.clothes()[index]?.price ?? 0;
-    return qty * price;
+  onClientInput(): void {
+    this.selectedClient.set(null);
+    this.showClientDropdown.set(true);
   }
 
-  getTotal(): number {
-    return this.clothes().reduce((sum, _, i) => sum + this.getItemTotal(i), 0);
+  selectClient(client: Client): void {
+    this.selectedClient.set(client);
+    this.clientSearch.setValue(`${client.name} — ${client.phone_number}`, { emitEvent: false });
+    this.showClientDropdown.set(false);
+    this.showNewClient.set(false);
   }
 
-  onCancel(): void {
-    this.closeForm.emit();
+  clearClient(): void {
+    this.selectedClient.set(null);
+    this.clientSearch.setValue('');
+  }
+
+  openNewClient(): void {
+    // prefill with what was typed: digits go to the phone, text to the name
+    const typed = this.searchTerm().trim();
+    if (/^\d+$/.test(typed)) this.newClientPhone.setValue(typed);
+    else this.newClientName.setValue(typed);
+    this.showClientDropdown.set(false);
+    this.showNewClient.set(true);
+  }
+
+  createClient(): void {
+    if (this.newClientName.invalid || this.newClientPhone.invalid) {
+      this.newClientName.markAsTouched();
+      this.newClientPhone.markAsTouched();
+      return;
+    }
+    const client: Client = {
+      name: this.newClientName.value.trim(),
+      phone_number: this.newClientPhone.value,
+    };
+    this.clientsService.createClient(client).subscribe({
+      next: (res: { clientId: string }) => this.selectClient({ ...client, id: res.clientId }),
+      error: (err: HttpErrorResponse) =>
+        this.errorMessage.set(err.error?.message ?? 'Could not create the client.'),
+    });
+  }
+
+  quantity(clothe: Clothe): number {
+    return this.quantities()[clothe.id] ?? 0;
+  }
+
+  setQuantity(clothe: Clothe, value: number): void {
+    const qty = Math.max(0, Math.floor(Number(value) || 0));
+    this.quantities.update((q) => ({ ...q, [clothe.id]: qty }));
   }
 
   onSubmit(): void {
-    if (this.invoiceForm.invalid) return;
-
-    const details = this.clothes()
-      .map((c, i) => ({
-        product: c.name,
-        unit_price: c.price,
-        quantity: this.items.at(i).get('quantity')?.value ?? 0,
-      }))
-      .filter((item) => item.quantity > 0);
-
-    if (details.length === 0) {
-      this.errorMessage.set('Please add at least one item.');
+    this.errorMessage.set(null);
+    const client = this.selectedClient();
+    if (!client?.id) {
+      this.errorMessage.set('Choose a client first.');
       return;
     }
 
-    const payment_status = this.invoiceForm.value.payment_status ?? 'not_paid';
-    const paid_amount =
-      payment_status === 'partial_paid'
-        ? (this.invoiceForm.value.paid_amount ?? 0)
-        : payment_status === 'paid'
-          ? this.getTotal()
-          : 0;
+    const details = this.clothes()
+      .filter((c) => this.quantity(c) > 0)
+      .map((c) => ({ product: c.name, unit_price: c.price, quantity: this.quantity(c) }));
+    if (details.length === 0) {
+      this.errorMessage.set('Add at least one item.');
+      return;
+    }
 
-    const payload = {
-      client_id: this.invoiceForm.value.clientId!,
-      amount: this.getTotal(),
-      status: payment_status,
-      paid_amount,
-      details,
-      clothes_status: this.invoiceForm.get('clothes_status')?.value ?? 'not_cleaned',
-    };
+    const status = this.paymentStatus();
+    let paid_amount = 0;
+    if (status === 'paid') paid_amount = this.total();
+    if (status === 'partial_paid') {
+      paid_amount = Number(this.paidAmount.value);
+      if (!(paid_amount > 0 && paid_amount < this.total())) {
+        this.errorMessage.set('The amount received must be between 0 and the total.');
+        return;
+      }
+    }
 
-    this.invoiceService.createInvoice(payload).subscribe({
-      next: () => {
-        this.invoiceService.updateInvoiceList();
-        this.closeForm.emit();
-      },
-      error: (err) => this.errorMessage.set(err.error?.message ?? 'Failed to create invoice'),
-    });
+    this.saving.set(true);
+    this.invoiceService
+      .createInvoice({
+        client_id: client.id,
+        amount: this.total(),
+        status,
+        paid_amount,
+        details,
+        clothes_status: 'not_cleaned',
+      })
+      .subscribe({
+        next: (res) => {
+          this.saving.set(false);
+          this.invoiceService.updateInvoiceList();
+          this.created.emit(res.invoiceId);
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.errorMessage.set(err.error?.message ?? 'Failed to create invoice.');
+        },
+      });
   }
 }

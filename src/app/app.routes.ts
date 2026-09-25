@@ -6,7 +6,6 @@ import { UsersComponent } from './components/users-component/users-component';
 import { LoginComponent } from './components/login-component/login-component';
 import { authGuard } from './guards/auth-guard';
 import { MainLayout } from './layout/main-layout/main-layout';
-import { CreateUserComponent } from './components/create-user-component/create-user-component';
 import { HomeComponent } from './components/home-component/home-component';
 
 export const routes: Routes = [
@@ -16,6 +15,7 @@ export const routes: Routes = [
     component: MainLayout,
     canActivate: [authGuard],
     children: [
+      { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: HomeComponent },
       {
         path: 'invoices',
@@ -24,7 +24,7 @@ export const routes: Routes = [
       { path: 'clothes', component: ClothesComponent },
       { path: 'clients', component: ClientsComponent },
       { path: 'users', component: UsersComponent },
-      { path: 'create-user', component: CreateUserComponent },
+      { path: 'create-user', redirectTo: 'users' },
     ],
   },
   { path: '**', redirectTo: '/app/home' },

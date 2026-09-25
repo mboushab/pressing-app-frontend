@@ -1,93 +1,130 @@
 <section [class]="classNames.container">
-  <div class="flex justify-center mb-4 gap-4">
-    <app-search-component
-      class="w-1/2"
-      [(search)]="searchText"
-      [placeholder]="'Search by Phone number'"
-    ></app-search-component>
-    <button
-      [class]="classNames.buttonPrimary + ' cursor-pointer'"
-      (click)="showCreateForm.set(true)"
-    >
-      Create Invoice
+  <div [class]="classNames.pageHeader">
+    <h1 [class]="classNames.pageTitle">Invoices</h1>
+    <button [class]="classNames.buttonPrimary" (click)="openCreateForm()">
+      <mat-icon>add</mat-icon> New invoice
     </button>
   </div>
 
-  <table class="w-full border-collapse">
-    <thead>
-      <tr>
-        <th class="py-2 px-4 border-b border-gray-200">Invoice Number</th>
-        <th class="py-2 px-4 border-b border-gray-200">Client Name</th>
-        <th class="py-2 px-4 border-b border-gray-200">Total Amount</th>
-        <th class="py-2 px-4 border-b border-gray-200">Clothes</th>
-        <th class="py-2 px-4 border-b border-gray-200">Payment</th>
-        <th class="py-2 px-4 border-b border-gray-200">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (invoice of invoices(); track invoice.id) {
-        <tr class="hover:bg-gray-100 cursor-pointer" (click)="onSelectedInvoiceChange(invoice.id)">
-          <td class="py-2 px-4 border-b border-gray-200">{{ invoice.client.phone_number }}</td>
-          <td class="py-2 px-4 border-b border-gray-200">
-            {{ invoice.client.name }}
-          </td>
-          <td class="py-2 px-4 border-b border-gray-200">{{ invoice.amount | currency }}</td>
-          <td class="py-2 px-4 border-b border-gray-200">
-            <select
-              class="ml-2 border border-gray-300 rounded px-2 py-1 focus:outline-none"
-              (click)="$event.stopPropagation()"
-              (change)="setClothesStatus($event, invoice)"
-              [value]="invoice.clothes_status"
-            >
-              <option value="cleaned">Cleaned</option>
-              <option value="not_cleaned">Not Cleaned</option>
-            </select>
-          </td>
-          <td class="py-2 px-4 border-b border-gray-200">
-            <span
-              class="px-2 py-0.5 rounded text-sm font-medium"
-              [class]="
-                invoice.status === 'paid'
-                  ? 'bg-green-100 text-green-700'
-                  : invoice.status === 'partial_paid'
-                    ? 'bg-orange-100 text-orange-700'
-                    : 'bg-red-100 text-red-700'
-              "
-            >
-              {{ invoice.status }}
-            </span>
-          </td>
-          <td class="py-2 px-4 border-b border-gray-200">
-            @if (userService.getUserRole().toLowerCase() === 'admin' && invoice.id) {
-              <button
-                [class]="classNames.buttonDanger + ' ml-2'"
-                (click)="deleteInvoice(invoice.id); $event.stopPropagation()"
-              >
-                Delete
-              </button>
-            }
-          </td>
-        </tr>
+  <div class="flex flex-wrap items-center gap-3 mb-4">
+    <app-search-component
+      class="w-full sm:w-72"
+      [(search)]="searchText"
+      placeholder="Search by name or phone"
+    />
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Filter invoices">
+      @for (f of filters(); track f.key) {
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm cursor-pointer"
+          [class]="
+            filter() === f.key
+              ? 'border-cyan-700 bg-cyan-700 text-white'
+              : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+          "
+          [attr.aria-pressed]="filter() === f.key"
+          (click)="filter.set(f.key)"
+        >
+          {{ f.label }}
+          <span
+            class="rounded-full px-1.5 text-xs"
+            [class]="filter() === f.key ? 'bg-white/20' : 'bg-slate-100'"
+            >{{ f.count }}</span
+          >
+        </button>
       }
-    </tbody>
-  </table>
-
-  <ng-template #noInvoices>
-    <div class="text-center text-gray-500 mt-8">
-      No invoices found. Please create an invoice to get started.
     </div>
-  </ng-template>
+  </div>
 
-  <!-- Create Invoice Form -->
+  <div [class]="classNames.card + ' overflow-x-auto'">
+    <table [class]="classNames.table">
+      <thead>
+        <tr>
+          <th [class]="classNames.th">Client</th>
+          <th [class]="classNames.th + ' hidden md:table-cell'">Date</th>
+          <th [class]="classNames.th + ' text-right hidden sm:table-cell'">Total</th>
+          <th [class]="classNames.th + ' text-right'">Balance due</th>
+          <th [class]="classNames.th">Clothes</th>
+          <th [class]="classNames.th + ' hidden sm:table-cell'">Payment</th>
+          <th [class]="classNames.th"><span class="sr-only">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (invoice of visibleInvoices(); track invoice.id) {
+          <tr
+            class="cursor-pointer hover:bg-slate-50"
+            [class.bg-cyan-50]="invoiceID() === invoice.id"
+            (click)="invoiceID.set(invoice.id)"
+          >
+            <td [class]="classNames.td">
+              <div class="font-medium text-slate-800">{{ invoice.client.name }}</div>
+              <div class="text-xs text-slate-500">{{ invoice.client.phone_number }}</div>
+            </td>
+            <td [class]="classNames.td + ' whitespace-nowrap hidden md:table-cell'">
+              {{ invoice.created_at | date: 'dd/MM/yyyy HH:mm' }}
+            </td>
+            <td [class]="classNames.td + ' text-right hidden sm:table-cell'">{{ invoice.amount | currency }}</td>
+            <td
+              [class]="classNames.td + ' text-right font-medium'"
+              [class.text-red-600]="balance(invoice) > 0"
+            >
+              {{ balance(invoice) > 0 ? (balance(invoice) | currency) : '—' }}
+            </td>
+            <td [class]="classNames.td">
+              <button
+                type="button"
+                [class]="clothesStatusClass[invoice.clothes_status] + ' cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-slate-300'"
+                [title]="
+                  invoice.clothes_status === 'cleaned' ? 'Mark as to clean' : 'Mark as ready'
+                "
+                (click)="toggleClothesStatus(invoice); $event.stopPropagation()"
+              >
+                {{ clothesStatusLabel[invoice.clothes_status] }}
+              </button>
+            </td>
+            <td [class]="classNames.td + ' hidden sm:table-cell'">
+              <span [class]="paymentStatusClass[invoice.status]">
+                {{ paymentStatusLabel[invoice.status] }}
+              </span>
+            </td>
+            <td [class]="classNames.td + ' text-right'">
+              @if (isAdmin) {
+                <button
+                  type="button"
+                  [class]="classNames.iconButtonDanger"
+                  title="Delete invoice"
+                  aria-label="Delete invoice"
+                  (click)="deleteInvoice(invoice); $event.stopPropagation()"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" [class]="classNames.empty">
+              @if (invoices().length === 0 && !searchText()) {
+                No invoices yet. Click <strong>New invoice</strong> to create the first one.
+              } @else {
+                No invoice matches this search or filter.
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
   @if (showCreateForm()) {
-    <app-create-invoice
-      (closeForm)="showCreateForm.set(false)"
-      [currentUserId]="invoiceID()"
-    ></app-create-invoice>
+    <app-drawer title="New invoice" (closed)="closeCreateForm()">
+      <app-create-invoice (created)="onInvoiceCreated($event)" (closeForm)="closeCreateForm()" />
+    </app-drawer>
   }
 
-  <!-- Invoice Details -->
-  @if (invoiceID()) {
-    <app-invoice-details [invoiceID]="invoiceID()"></app-invoice-details>
+  @if (invoiceID(); as id) {
+    <app-drawer title="Invoice" (closed)="invoiceID.set(null)">
+      <app-invoice-details [invoiceID]="id" />
+    </app-drawer>
   }
 </section>
