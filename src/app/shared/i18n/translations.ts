@@ -1,6 +1,6 @@
 // French is the reference: the Arabic dictionary must define exactly the same keys.
 const fr = {
-  'app.name': 'My clean app',
+  'app.name': 'مغسلتي',
 
   'nav.dashboard': 'Tableau de bord',
   'nav.invoices': 'Factures',
@@ -165,7 +165,7 @@ const fr = {
 } as const;
 
 const ar: Record<keyof typeof fr, string> = {
-  'app.name': 'My clean app',
+  'app.name': 'مغسلتي',
 
   'nav.dashboard': 'لوحة التحكم',
   'nav.invoices': 'الفواتير',
