@@ -3,10 +3,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserService } from '../../services/user-sevice';
 import { classNames } from '../../shared/styles/class-names';
+import { TranslatePipe } from '../../shared/i18n/i18n.pipes';
+import { TranslationKey } from '../../shared/i18n/i18n.service';
 
 @Component({
   selector: 'app-create-user-component',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, TranslatePipe],
   templateUrl: './create-user-component.html',
   styleUrl: './create-user-component.css',
 })
@@ -17,7 +19,7 @@ export class CreateUserComponent {
   readonly cancelled = output<void>();
 
   readonly classNames = classNames;
-  readonly error = signal('');
+  readonly error = signal<TranslationKey | null>(null);
   readonly saving = signal(false);
 
   readonly userForm = inject(FormBuilder).nonNullable.group({
@@ -32,7 +34,7 @@ export class CreateUserComponent {
       return;
     }
     const user = this.userForm.getRawValue();
-    this.error.set('');
+    this.error.set(null);
     this.saving.set(true);
     this.userService.addNewUser(user).subscribe({
       next: () => {
@@ -44,10 +46,10 @@ export class CreateUserComponent {
         this.saving.set(false);
         this.error.set(
           err.status === 409
-            ? 'This username is already taken.'
+            ? 'users.error.taken'
             : err.status === 403
-              ? 'Only an admin can create users.'
-              : 'Could not create the user.',
+              ? 'users.error.forbidden'
+              : 'users.error.create',
         );
       },
     });

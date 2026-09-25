@@ -20,7 +20,7 @@ export const classNames = {
   label: 'block text-sm font-medium text-slate-700 mb-1',
   fieldError: 'text-red-600 text-sm mt-1',
   table: 'w-full text-sm',
-  th: 'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b border-slate-200',
+  th: 'px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide rtl:tracking-normal text-slate-500 bg-slate-50 border-b border-slate-200',
   td: 'px-4 py-3 border-b border-slate-100 text-slate-700',
   empty: 'py-12 text-center text-slate-500',
 } as const;

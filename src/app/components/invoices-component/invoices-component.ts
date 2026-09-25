@@ -1,5 +1,4 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatIcon } from '@angular/material/icon';
 import { ClothesStatus, Invoice } from '../../types/invoice';
@@ -13,6 +12,8 @@ import {
   paymentStatusLabel,
 } from '../../shared/status';
 import { ToastService } from '../../shared/toast/toast.service';
+import { I18N_PIPES } from '../../shared/i18n/i18n.pipes';
+import { I18nService, TranslationKey } from '../../shared/i18n/i18n.service';
 import { Drawer } from '../../shared/drawer/drawer';
 import { CreateInvoice } from '../create-invoice/create-invoice';
 import { SearchComponent } from '../search-component/search-component';
@@ -23,8 +24,7 @@ type InvoiceFilter = 'all' | 'to_clean' | 'ready' | 'unpaid';
 @Component({
   selector: 'app-invoices-component',
   imports: [
-    CurrencyPipe,
-    DatePipe,
+    ...I18N_PIPES,
     MatIcon,
     CreateInvoice,
     SearchComponent,
@@ -37,6 +37,7 @@ type InvoiceFilter = 'all' | 'to_clean' | 'ready' | 'unpaid';
 export class InvoicesComponent {
   private readonly invoiceService = inject(InvoiceService);
   private readonly toast = inject(ToastService);
+  private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
   readonly isAdmin = inject(UserService).isAdmin();
 
@@ -67,11 +68,11 @@ export class InvoicesComponent {
     const list = this.invoices();
     return (
       [
-        ['all', 'All'],
-        ['to_clean', 'To clean'],
-        ['ready', 'Ready'],
-        ['unpaid', 'Unpaid'],
-      ] as [InvoiceFilter, string][]
+        ['all', 'invoices.filter.all'],
+        ['to_clean', 'invoices.filter.to_clean'],
+        ['ready', 'invoices.filter.ready'],
+        ['unpaid', 'invoices.filter.unpaid'],
+      ] as [InvoiceFilter, TranslationKey][]
     ).map(([key, label]) => ({ key, label, count: list.filter(this.matchers[key]).length }));
   });
 
@@ -92,7 +93,7 @@ export class InvoicesComponent {
 
   onInvoiceCreated(invoiceId: string): void {
     this.closeCreateForm();
-    this.toast.success('Invoice created.');
+    this.toast.success(this.i18n.t('toast.invoice_created'));
     this.invoiceID.set(invoiceId);
   }
 
@@ -100,22 +101,26 @@ export class InvoicesComponent {
     const next: ClothesStatus = invoice.clothes_status === 'cleaned' ? 'not_cleaned' : 'cleaned';
     this.invoiceService.updateClothesStatus(invoice.id, next).subscribe({
       next: () => {
-        this.toast.success(`${invoice.client.name}: ${clothesStatusLabel[next].toLowerCase()}.`);
+        this.toast.success(
+          this.i18n.t(next === 'cleaned' ? 'toast.clothes_ready' : 'toast.clothes_to_clean', {
+            name: invoice.client.name,
+          }),
+        );
         this.invoiceService.updateInvoiceList();
       },
-      error: () => this.toast.error('Could not update the clothes status.'),
+      error: () => this.toast.error(this.i18n.t('toast.clothes_error')),
     });
   }
 
   deleteInvoice(invoice: Invoice): void {
-    if (!confirm(`Delete the invoice of ${invoice.client.name}? This cannot be undone.`)) return;
+    if (!confirm(this.i18n.t('invoices.confirm_delete', { name: invoice.client.name }))) return;
     this.invoiceService.deleteInvoice(invoice.id).subscribe({
       next: () => {
         if (this.invoiceID() === invoice.id) this.invoiceID.set(null);
-        this.toast.success('Invoice deleted.');
+        this.toast.success(this.i18n.t('toast.invoice_deleted'));
         this.invoiceService.updateInvoiceList();
       },
-      error: () => this.toast.error('Could not delete the invoice.'),
+      error: () => this.toast.error(this.i18n.t('toast.invoice_delete_error')),
     });
   }
 }

@@ -1,38 +1,38 @@
 <section [class]="classNames.container">
   <div [class]="classNames.pageHeader">
-    <h1 [class]="classNames.pageTitle">Clients</h1>
+    <h1 [class]="classNames.pageTitle">{{ 'nav.clients' | t }}</h1>
     <button [class]="classNames.buttonPrimary" (click)="openNewClientForm()">
-      <mat-icon>person_add</mat-icon> New client
+      <mat-icon>person_add</mat-icon> {{ 'clients.new' | t }}
     </button>
   </div>
 
   <app-search-component
     class="block w-full sm:w-72 mb-4"
     [(search)]="queryText"
-    placeholder="Search by name or phone"
+    [placeholder]="'common.search_name_phone' | t"
   />
 
   <div [class]="classNames.card + ' overflow-x-auto'">
     <table [class]="classNames.table">
       <thead>
         <tr>
-          <th [class]="classNames.th">Name</th>
-          <th [class]="classNames.th">Phone</th>
-          <th [class]="classNames.th"><span class="sr-only">Actions</span></th>
+          <th [class]="classNames.th">{{ 'clients.name' | t }}</th>
+          <th [class]="classNames.th">{{ 'clients.phone' | t }}</th>
+          <th [class]="classNames.th"><span class="sr-only">{{ 'common.actions' | t }}</span></th>
         </tr>
       </thead>
       <tbody>
         @for (client of clients(); track client.id) {
           <tr class="hover:bg-slate-50">
             <td [class]="classNames.td + ' font-medium text-slate-800'">{{ client.name }}</td>
-            <td [class]="classNames.td">{{ client.phone_number }}</td>
-            <td [class]="classNames.td + ' text-right'">
+            <td [class]="classNames.td"><bdi>{{ client.phone_number }}</bdi></td>
+            <td [class]="classNames.td + ' text-end'">
               @if (isAdmin) {
                 <button
                   type="button"
                   [class]="classNames.iconButtonDanger"
-                  title="Delete client"
-                  aria-label="Delete client"
+                  [title]="'clients.delete' | t"
+                  [attr.aria-label]="'clients.delete' | t"
                   (click)="deleteClient(client)"
                 >
                   <mat-icon>delete</mat-icon>
@@ -44,11 +44,11 @@
           <tr>
             <td colspan="3" [class]="classNames.empty">
               @if (!loaded()) {
-                Loading…
+                {{ 'common.loading' | t }}
               } @else if (queryText()) {
-                No client matches “{{ queryText() }}”.
+                {{ 'clients.no_match' | t: { query: queryText() } }}
               } @else {
-                No clients yet. Click <strong>New client</strong> to add one.
+                {{ 'clients.empty' | t }}
               }
             </td>
           </tr>
@@ -58,38 +58,38 @@
   </div>
 
   @if (showClientForm()) {
-    <app-drawer title="New client" (closed)="closeNewClientForm()">
+    <app-drawer [title]="'clients.new' | t" (closed)="closeNewClientForm()">
       <form [formGroup]="form" (ngSubmit)="submitCreateForm()" class="space-y-4">
         <div>
-          <label for="name" [class]="classNames.label">Name</label>
+          <label for="name" [class]="classNames.label">{{ 'clients.name' | t }}</label>
           <input id="name" type="text" formControlName="name" [class]="classNames.input" autofocus />
           @if (form.controls.name.invalid && form.controls.name.touched) {
-            <p [class]="classNames.fieldError">At least 3 characters.</p>
+            <p [class]="classNames.fieldError">{{ 'clients.name_error' | t }}</p>
           }
         </div>
         <div>
-          <label for="phone" [class]="classNames.label">Phone number</label>
+          <label for="phone" [class]="classNames.label">{{ 'clients.phone' | t }}</label>
           <input
             id="phone"
             type="tel"
             inputmode="numeric"
-            placeholder="8 digits"
+            [placeholder]="'clients.phone_placeholder' | t"
             formControlName="phone_number"
             [class]="classNames.input"
           />
           @if (form.controls.phone_number.invalid && form.controls.phone_number.touched) {
-            <p [class]="classNames.fieldError">The phone number must have 8 digits.</p>
+            <p [class]="classNames.fieldError">{{ 'clients.phone_error' | t }}</p>
           }
         </div>
-        @if (errorMessage()) {
-          <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
+        @if (errorMessage(); as error) {
+          <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ error | t }}</p>
         }
         <div class="flex justify-end gap-2">
           <button type="button" [class]="classNames.buttonSecondary" (click)="closeNewClientForm()">
-            Cancel
+            {{ 'common.cancel' | t }}
           </button>
           <button type="submit" [class]="classNames.buttonPrimary" [disabled]="saving()">
-            {{ saving() ? 'Saving…' : 'Add client' }}
+            {{ (saving() ? 'common.saving' : 'clients.add') | t }}
           </button>
         </div>
       </form>

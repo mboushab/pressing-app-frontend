@@ -1,11 +1,11 @@
 <section [class]="classNames.container">
   <div [class]="classNames.pageHeader">
     <div>
-      <h1 [class]="classNames.pageTitle">Prices</h1>
-      <p class="text-sm text-slate-500">Items and prices offered when creating an invoice.</p>
+      <h1 [class]="classNames.pageTitle">{{ 'nav.prices' | t }}</h1>
+      <p class="text-sm text-slate-500">{{ 'prices.subtitle' | t }}</p>
     </div>
     <button [class]="classNames.buttonPrimary" (click)="openCreateForm()">
-      <mat-icon>add</mat-icon> New item
+      <mat-icon>add</mat-icon> {{ 'prices.new' | t }}
     </button>
   </div>
 
@@ -13,22 +13,22 @@
     <table [class]="classNames.table">
       <thead>
         <tr>
-          <th [class]="classNames.th">Item</th>
-          <th [class]="classNames.th + ' text-right'">Price</th>
-          <th [class]="classNames.th"><span class="sr-only">Actions</span></th>
+          <th [class]="classNames.th">{{ 'invoice.col.item' | t }}</th>
+          <th [class]="classNames.th + ' text-end'">{{ 'prices.price' | t }}</th>
+          <th [class]="classNames.th"><span class="sr-only">{{ 'common.actions' | t }}</span></th>
         </tr>
       </thead>
       <tbody>
         @for (clothe of clothes(); track clothe.id) {
           <tr class="hover:bg-slate-50">
             <td [class]="classNames.td + ' font-medium text-slate-800'">{{ clothe.name }}</td>
-            <td [class]="classNames.td + ' text-right'">{{ clothe.price | currency }}</td>
-            <td [class]="classNames.td + ' text-right whitespace-nowrap'">
+            <td [class]="classNames.td + ' text-end whitespace-nowrap'">{{ clothe.price | money }}</td>
+            <td [class]="classNames.td + ' text-end whitespace-nowrap'">
               <button
                 type="button"
                 [class]="classNames.iconButton"
-                title="Edit"
-                [attr.aria-label]="'Edit ' + clothe.name"
+                [title]="'common.edit' | t"
+                [attr.aria-label]="('common.edit' | t) + ' ' + clothe.name"
                 (click)="openEditForm(clothe)"
               >
                 <mat-icon>edit</mat-icon>
@@ -36,8 +36,8 @@
               <button
                 type="button"
                 [class]="classNames.iconButtonDanger"
-                title="Remove"
-                [attr.aria-label]="'Remove ' + clothe.name"
+                [title]="'common.delete' | t"
+                [attr.aria-label]="('common.delete' | t) + ' ' + clothe.name"
                 (click)="delete(clothe)"
               >
                 <mat-icon>delete</mat-icon>
@@ -47,7 +47,7 @@
         } @empty {
           <tr>
             <td colspan="3" [class]="classNames.empty">
-              {{ loaded() ? 'No items yet. Add the first one with “New item”.' : 'Loading…' }}
+              {{ (loaded() ? 'prices.empty' : 'common.loading') | t }}
             </td>
           </tr>
         }
@@ -56,24 +56,27 @@
   </div>
 
   @if (showForm()) {
-    <app-drawer [title]="editingId() !== null ? 'Edit item' : 'New item'" (closed)="closeForm()">
+    <app-drawer
+      [title]="(editingId() !== null ? 'prices.edit' : 'prices.new') | t"
+      (closed)="closeForm()"
+    >
       <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
         <div>
-          <label for="clothe-name" [class]="classNames.label">Name</label>
+          <label for="clothe-name" [class]="classNames.label">{{ 'prices.name' | t }}</label>
           <input
             id="clothe-name"
             type="text"
             formControlName="name"
             [class]="classNames.input"
-            placeholder="e.g. Shirt"
+            [placeholder]="'prices.name_placeholder' | t"
             autofocus
           />
           @if (form.controls.name.invalid && form.controls.name.touched) {
-            <p [class]="classNames.fieldError">At least 2 characters.</p>
+            <p [class]="classNames.fieldError">{{ 'prices.name_error' | t }}</p>
           }
         </div>
         <div>
-          <label for="clothe-price" [class]="classNames.label">Price</label>
+          <label for="clothe-price" [class]="classNames.label">{{ 'prices.price' | t }}</label>
           <input
             id="clothe-price"
             type="number"
@@ -83,15 +86,17 @@
             [class]="classNames.input"
           />
           @if (form.controls.price.invalid && form.controls.price.touched) {
-            <p [class]="classNames.fieldError">Enter a price of 0 or more.</p>
+            <p [class]="classNames.fieldError">{{ 'prices.price_error' | t }}</p>
           }
         </div>
-        @if (errorMessage()) {
-          <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ errorMessage() }}</p>
+        @if (errorMessage(); as error) {
+          <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ error | t }}</p>
         }
         <div class="flex justify-end gap-2">
-          <button type="button" [class]="classNames.buttonSecondary" (click)="closeForm()">Cancel</button>
-          <button type="submit" [class]="classNames.buttonPrimary">Save</button>
+          <button type="button" [class]="classNames.buttonSecondary" (click)="closeForm()">
+            {{ 'common.cancel' | t }}
+          </button>
+          <button type="submit" [class]="classNames.buttonPrimary">{{ 'common.save' | t }}</button>
         </div>
       </form>
     </app-drawer>

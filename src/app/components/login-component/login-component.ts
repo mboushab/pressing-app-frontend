@@ -5,10 +5,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { MatIcon } from '@angular/material/icon';
 import { AuthenticationService } from '../../services/authentication-component';
 import { classNames } from '../../shared/styles/class-names';
+import { TranslatePipe } from '../../shared/i18n/i18n.pipes';
+import { TranslationKey } from '../../shared/i18n/i18n.service';
+import { LangSwitch } from '../../shared/i18n/lang-switch';
 
 @Component({
   selector: 'app-login-component',
-  imports: [ReactiveFormsModule, MatIcon],
+  imports: [ReactiveFormsModule, MatIcon, TranslatePipe, LangSwitch],
   templateUrl: './login-component.html',
   styleUrl: './login-component.css',
 })
@@ -17,7 +20,7 @@ export class LoginComponent {
   private readonly router = inject(Router);
 
   readonly classNames = classNames;
-  readonly error = signal('');
+  readonly error = signal<TranslationKey | null>(null);
   readonly loading = signal(false);
 
   readonly userForm = inject(FormBuilder).nonNullable.group({
@@ -37,7 +40,7 @@ export class LoginComponent {
       return;
     }
     const { username, password } = this.userForm.getRawValue();
-    this.error.set('');
+    this.error.set(null);
     this.loading.set(true);
     this.authService.login(username, password).subscribe({
       next: (res) => {
@@ -51,10 +54,10 @@ export class LoginComponent {
         this.loading.set(false);
         this.error.set(
           err.status === 401
-            ? 'Wrong username or password.'
+            ? 'login.error.credentials'
             : err.status === 0
-              ? 'Cannot reach the server. Is the backend running?'
-              : 'Login failed, please try again.',
+              ? 'login.error.server'
+              : 'login.error.generic',
         );
       },
     });

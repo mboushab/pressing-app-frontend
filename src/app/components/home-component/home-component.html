@@ -1,15 +1,17 @@
 <section [class]="classNames.container">
   <div [class]="classNames.pageHeader">
     <div>
-      <h1 [class]="classNames.pageTitle">Hello{{ username ? ', ' + username : '' }}</h1>
-      <p class="text-sm text-slate-500">{{ now | date: 'EEEE d MMMM' }}</p>
+      <h1 [class]="classNames.pageTitle">
+        {{ (username ? 'home.hello_name' : 'home.hello') | t: { name: username } }}
+      </h1>
+      <p class="text-sm text-slate-500">{{ now | appDate: 'long' }}</p>
     </div>
     <div class="flex gap-2">
       <a routerLink="/app/clients" [class]="classNames.buttonSecondary">
-        <mat-icon>person_add</mat-icon> Client
+        <mat-icon>person_add</mat-icon> {{ 'home.client' | t }}
       </a>
       <a routerLink="/app/invoices" [queryParams]="{ new: 1 }" [class]="classNames.buttonPrimary">
-        <mat-icon>add</mat-icon> New invoice
+        <mat-icon>add</mat-icon> {{ 'invoices.new' | t }}
       </a>
     </div>
   </div>
@@ -18,25 +20,25 @@
   <div class="grid grid-cols-2 gap-3 lg:grid-cols-4 mb-6">
     <div [class]="classNames.card + ' p-4'">
       <div class="flex items-center gap-2 text-sm text-slate-500">
-        <mat-icon class="text-amber-600">local_laundry_service</mat-icon> To clean
+        <mat-icon class="text-amber-600">local_laundry_service</mat-icon> {{ 'home.to_clean' | t }}
       </div>
       <p class="mt-1 text-3xl font-semibold text-slate-800">{{ toClean().length }}</p>
     </div>
     <div [class]="classNames.card + ' p-4'">
       <div class="flex items-center gap-2 text-sm text-slate-500">
-        <mat-icon class="text-sky-600">inventory_2</mat-icon> Ready for pickup
+        <mat-icon class="text-sky-600">inventory_2</mat-icon> {{ 'home.ready' | t }}
       </div>
       <p class="mt-1 text-3xl font-semibold text-slate-800">{{ ready().length }}</p>
     </div>
     <div [class]="classNames.card + ' p-4'">
       <div class="flex items-center gap-2 text-sm text-slate-500">
-        <mat-icon class="text-red-600">account_balance_wallet</mat-icon> Still to collect
+        <mat-icon class="text-red-600">account_balance_wallet</mat-icon> {{ 'home.to_collect' | t }}
       </div>
-      <p class="mt-1 text-3xl font-semibold text-slate-800">{{ unpaidTotal() | currency }}</p>
+      <p class="mt-1 text-2xl font-semibold text-slate-800">{{ unpaidTotal() | money }}</p>
     </div>
     <div [class]="classNames.card + ' p-4'">
       <div class="flex items-center gap-2 text-sm text-slate-500">
-        <mat-icon class="text-cyan-700">today</mat-icon> Invoices today
+        <mat-icon class="text-cyan-700">today</mat-icon> {{ 'home.today' | t }}
       </div>
       <p class="mt-1 text-3xl font-semibold text-slate-800">{{ today().length }}</p>
     </div>
@@ -46,8 +48,8 @@
     <!-- Work queue -->
     <div [class]="classNames.card">
       <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <h2 class="font-semibold text-slate-800">To clean</h2>
-        <span class="text-xs text-slate-400">oldest first</span>
+        <h2 class="font-semibold text-slate-800">{{ 'home.to_clean' | t }}</h2>
+        <span class="text-xs text-slate-400">{{ 'home.oldest_first' | t }}</span>
       </div>
       <ul class="divide-y divide-slate-100">
         @for (invoice of toClean().slice(0, 8); track invoice.id) {
@@ -55,7 +57,8 @@
             <div class="flex-1 min-w-0">
               <p class="truncate font-medium text-slate-800">{{ invoice.client.name }}</p>
               <p class="text-xs text-slate-500">
-                {{ invoice.client.phone_number }} · {{ invoice.created_at | date: 'dd/MM HH:mm' }}
+                <bdi>{{ invoice.client.phone_number }}</bdi> ·
+                {{ invoice.created_at | appDate: 'short' }}
               </p>
             </div>
             <button
@@ -63,18 +66,18 @@
               class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-700 cursor-pointer hover:bg-slate-50"
               (click)="markReady(invoice)"
             >
-              <mat-icon class="!text-lg !size-5">done</mat-icon> Ready
+              <mat-icon class="!text-lg !size-5">done</mat-icon> {{ 'clothes.cleaned' | t }}
             </button>
           </li>
         } @empty {
-          <li class="px-4 py-8 text-center text-sm text-slate-500">Nothing waiting. 🎉</li>
+          <li class="px-4 py-8 text-center text-sm text-slate-500">{{ 'home.nothing_waiting' | t }}</li>
         }
       </ul>
       @if (toClean().length > 8) {
         <a
           routerLink="/app/invoices"
           class="block border-t border-slate-100 px-4 py-2 text-center text-sm text-cyan-700 hover:bg-slate-50"
-          >See all {{ toClean().length }}</a
+          >{{ 'home.see_all' | t: { count: toClean().length } }}</a
         >
       }
     </div>
@@ -82,27 +85,25 @@
     <!-- Ready, payment pending -->
     <div [class]="classNames.card">
       <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <h2 class="font-semibold text-slate-800">Ready, payment pending</h2>
-        <span class="text-xs text-slate-400">collect on pickup</span>
+        <h2 class="font-semibold text-slate-800">{{ 'home.ready_unpaid' | t }}</h2>
+        <span class="text-xs text-slate-400">{{ 'home.collect_on_pickup' | t }}</span>
       </div>
       <ul class="divide-y divide-slate-100">
         @for (invoice of readyUnpaid().slice(0, 8); track invoice.id) {
           <li class="flex items-center gap-3 px-4 py-3">
             <div class="flex-1 min-w-0">
               <p class="truncate font-medium text-slate-800">{{ invoice.client.name }}</p>
-              <p class="text-xs text-slate-500">{{ invoice.client.phone_number }}</p>
+              <p class="text-xs text-slate-500"><bdi>{{ invoice.client.phone_number }}</bdi></p>
             </div>
             <span [class]="paymentStatusClass[invoice.status]">{{
-              paymentStatusLabel[invoice.status]
+              paymentStatusLabel[invoice.status] | t
             }}</span>
-            <span class="w-20 text-right font-semibold text-red-600">{{
-              balance(invoice) | currency
+            <span class="w-24 text-end font-semibold text-red-600">{{
+              balance(invoice) | money
             }}</span>
           </li>
         } @empty {
-          <li class="px-4 py-8 text-center text-sm text-slate-500">
-            Every ready order is paid.
-          </li>
+          <li class="px-4 py-8 text-center text-sm text-slate-500">{{ 'home.all_paid' | t }}</li>
         }
       </ul>
     </div>

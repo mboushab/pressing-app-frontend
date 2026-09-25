@@ -1,6 +1,6 @@
 <form [formGroup]="userForm" (ngSubmit)="createUser()" class="space-y-4">
   <div>
-    <label for="new-username" [class]="classNames.label">Username</label>
+    <label for="new-username" [class]="classNames.label">{{ 'login.username' | t }}</label>
     <input
       id="new-username"
       type="text"
@@ -10,11 +10,11 @@
       autofocus
     />
     @if (userForm.controls.username.invalid && userForm.controls.username.touched) {
-      <p [class]="classNames.fieldError">At least 3 characters.</p>
+      <p [class]="classNames.fieldError">{{ 'clients.name_error' | t }}</p>
     }
   </div>
   <div>
-    <label for="new-password" [class]="classNames.label">Password</label>
+    <label for="new-password" [class]="classNames.label">{{ 'login.password' | t }}</label>
     <input
       id="new-password"
       type="password"
@@ -23,19 +23,19 @@
       [class]="classNames.input"
     />
     @if (userForm.controls.password.invalid && userForm.controls.password.touched) {
-      <p [class]="classNames.fieldError">At least 6 characters.</p>
+      <p [class]="classNames.fieldError">{{ 'users.password_error' | t }}</p>
     }
   </div>
   <fieldset>
-    <legend [class]="classNames.label">Role</legend>
+    <legend [class]="classNames.label">{{ 'users.role' | t }}</legend>
     <div class="grid grid-cols-2 gap-2">
       <label
         class="flex cursor-pointer items-start gap-2 rounded-lg border border-slate-300 bg-white p-3 has-[:checked]:border-cyan-700 has-[:checked]:ring-1 has-[:checked]:ring-cyan-700"
       >
         <input type="radio" value="USER" formControlName="role" class="mt-1" />
         <span>
-          <span class="block font-medium">Employee</span>
-          <span class="block text-xs text-slate-500">Invoices, clients and prices</span>
+          <span class="block font-medium">{{ 'users.role.employee' | t }}</span>
+          <span class="block text-xs text-slate-500">{{ 'users.role.employee_hint' | t }}</span>
         </span>
       </label>
       <label
@@ -43,19 +43,21 @@
       >
         <input type="radio" value="ADMIN" formControlName="role" class="mt-1" />
         <span>
-          <span class="block font-medium">Admin</span>
-          <span class="block text-xs text-slate-500">Also deletes and manages users</span>
+          <span class="block font-medium">{{ 'users.role.admin' | t }}</span>
+          <span class="block text-xs text-slate-500">{{ 'users.role.admin_hint' | t }}</span>
         </span>
       </label>
     </div>
   </fieldset>
-  @if (error()) {
-    <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ error() }}</p>
+  @if (error(); as err) {
+    <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ err | t }}</p>
   }
   <div class="flex justify-end gap-2">
-    <button type="button" [class]="classNames.buttonSecondary" (click)="cancelled.emit()">Cancel</button>
+    <button type="button" [class]="classNames.buttonSecondary" (click)="cancelled.emit()">
+      {{ 'common.cancel' | t }}
+    </button>
     <button type="submit" [class]="classNames.buttonPrimary" [disabled]="saving()">
-      {{ saving() ? 'Creating…' : 'Create user' }}
+      {{ (saving() ? 'common.saving' : 'users.create') | t }}
     </button>
   </div>
 </form>

@@ -1,5 +1,4 @@
 import { Component, inject, input, signal } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, map, merge, of, switchMap } from 'rxjs';
@@ -14,16 +13,19 @@ import {
   paymentStatusLabel,
 } from '../../shared/status';
 import { ToastService } from '../../shared/toast/toast.service';
+import { I18N_PIPES } from '../../shared/i18n/i18n.pipes';
+import { I18nService } from '../../shared/i18n/i18n.service';
 
 @Component({
   selector: 'app-invoice-details',
-  imports: [CurrencyPipe, DatePipe, ReactiveFormsModule, MatIcon],
+  imports: [...I18N_PIPES, ReactiveFormsModule, MatIcon],
   templateUrl: './invoice-details-component.html',
   styleUrl: './invoice-details-component.css',
 })
 export class InvoiceDetailsComponent {
   private readonly invoiceService = inject(InvoiceService);
   private readonly toast = inject(ToastService);
+  private readonly i18n = inject(I18nService);
 
   invoiceID = input<string | null>(null);
 
@@ -65,10 +67,14 @@ export class InvoiceDetailsComponent {
     if (!id) return;
     this.invoiceService.updateClothesStatus(id, clothes_status).subscribe({
       next: () => {
-        this.toast.success(`Clothes marked as ${clothesStatusLabel[clothes_status].toLowerCase()}.`);
+        this.toast.success(
+          this.i18n.t(clothes_status === 'cleaned' ? 'toast.clothes_ready' : 'toast.clothes_to_clean', {
+            name: this.selectedInvoice()?.client.name ?? '',
+          }),
+        );
         this.invoiceService.updateInvoiceList();
       },
-      error: (err) => this.toast.error(err.error?.message ?? 'Failed to update clothes status.'),
+      error: () => this.toast.error(this.i18n.t('toast.clothes_error')),
     });
   }
 
@@ -77,11 +83,13 @@ export class InvoiceDetailsComponent {
     if (!id) return;
     this.invoiceService.updatePaymentStatus(id, status, paid_amount).subscribe({
       next: () => {
-        this.toast.success(`Payment marked as ${paymentStatusLabel[status].toLowerCase()}.`);
+        this.toast.success(
+          this.i18n.t('toast.payment_updated', { status: this.i18n.t(paymentStatusLabel[status]) }),
+        );
         this.showPartialForm.set(false);
         this.invoiceService.updateInvoiceList();
       },
-      error: (err) => this.toast.error(err.error?.message ?? 'Failed to update payment.'),
+      error: () => this.toast.error(this.i18n.t('toast.payment_error')),
     });
   }
 

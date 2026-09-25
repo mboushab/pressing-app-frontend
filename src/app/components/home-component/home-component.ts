@@ -1,5 +1,4 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatIcon } from '@angular/material/icon';
 import { InvoiceService } from '../../services/invoice-service';
@@ -8,16 +7,19 @@ import { Invoice } from '../../types/invoice';
 import { classNames } from '../../shared/styles/class-names';
 import { paymentStatusClass, paymentStatusLabel } from '../../shared/status';
 import { ToastService } from '../../shared/toast/toast.service';
+import { I18N_PIPES } from '../../shared/i18n/i18n.pipes';
+import { I18nService } from '../../shared/i18n/i18n.service';
 
 @Component({
   selector: 'app-home-component',
-  imports: [CurrencyPipe, DatePipe, RouterLink, MatIcon],
+  imports: [RouterLink, MatIcon, ...I18N_PIPES],
   templateUrl: './home-component.html',
   styleUrl: './home-component.css',
 })
 export class HomeComponent {
   private readonly invoiceService = inject(InvoiceService);
   private readonly toast = inject(ToastService);
+  private readonly i18n = inject(I18nService);
 
   readonly classNames = classNames;
   readonly paymentStatusLabel = paymentStatusLabel;
@@ -50,7 +52,7 @@ export class HomeComponent {
   markReady(invoice: Invoice): void {
     this.invoiceService.updateClothesStatus(invoice.id, 'cleaned').subscribe({
       next: () => {
-        this.toast.success(`${invoice.client.name}: ready for pickup.`);
+        this.toast.success(this.i18n.t('toast.clothes_ready', { name: invoice.client.name }));
         this.invoiceService.updateInvoiceList();
       },
       error: () => this.toast.error('Could not update the clothes status.'),

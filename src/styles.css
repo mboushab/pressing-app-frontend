@@ -1,3 +1,8 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import 'tailwindcss';
+
+/* Arabic text gets a font designed for it */
+:lang(ar) body {
+  font-family: 'Noto Sans Arabic', ui-sans-serif, system-ui, sans-serif;
+}

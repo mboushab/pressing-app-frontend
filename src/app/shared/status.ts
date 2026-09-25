@@ -1,11 +1,13 @@
 import { ClothesStatus, PaymentStatus } from '../types/invoice';
+import { TranslationKey } from './i18n/i18n.service';
 
-const badge = 'inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium';
+const badge =
+  'inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium';
 
-export const paymentStatusLabel: Record<PaymentStatus, string> = {
-  not_paid: 'Not paid',
-  partial_paid: 'Partially paid',
-  paid: 'Paid',
+export const paymentStatusLabel: Record<PaymentStatus, TranslationKey> = {
+  not_paid: 'payment.not_paid',
+  partial_paid: 'payment.partial_paid',
+  paid: 'payment.paid',
 };
 
 export const paymentStatusClass: Record<PaymentStatus, string> = {
@@ -14,9 +16,9 @@ export const paymentStatusClass: Record<PaymentStatus, string> = {
   paid: `${badge} bg-green-100 text-green-700`,
 };
 
-export const clothesStatusLabel: Record<ClothesStatus, string> = {
-  not_cleaned: 'To clean',
-  cleaned: 'Ready',
+export const clothesStatusLabel: Record<ClothesStatus, TranslationKey> = {
+  not_cleaned: 'clothes.not_cleaned',
+  cleaned: 'clothes.cleaned',
 };
 
 export const clothesStatusClass: Record<ClothesStatus, string> = {

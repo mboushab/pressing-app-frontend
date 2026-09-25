@@ -1,11 +1,14 @@
 <div class="min-h-screen flex items-center justify-center bg-slate-100 px-4">
+  <div class="absolute top-4 end-4">
+    <app-lang-switch />
+  </div>
   <div class="w-full max-w-sm">
     <div class="flex flex-col items-center mb-6 text-slate-800">
       <span class="flex size-14 items-center justify-center rounded-2xl bg-cyan-700 text-white mb-3">
         <mat-icon class="!text-3xl !size-8">local_laundry_service</mat-icon>
       </span>
-      <h1 class="text-2xl font-semibold">My clean app</h1>
-      <p class="text-sm text-slate-500">Sign in to continue</p>
+      <h1 class="text-2xl font-semibold">{{ 'app.name' | t }}</h1>
+      <p class="text-sm text-slate-500">{{ 'login.subtitle' | t }}</p>
     </div>
 
     <form
@@ -14,7 +17,7 @@
       [class]="classNames.card + ' flex flex-col gap-4 p-6'"
     >
       <div>
-        <label for="username" [class]="classNames.label">Username</label>
+        <label for="username" [class]="classNames.label">{{ 'login.username' | t }}</label>
         <input
           id="username"
           type="text"
@@ -24,12 +27,12 @@
           formControlName="username"
         />
         @if (userForm.controls.username.invalid && userForm.controls.username.touched) {
-          <p [class]="classNames.fieldError">Enter your username (at least 3 characters).</p>
+          <p [class]="classNames.fieldError">{{ 'login.username_error' | t }}</p>
         }
       </div>
 
       <div>
-        <label for="password" [class]="classNames.label">Password</label>
+        <label for="password" [class]="classNames.label">{{ 'login.password' | t }}</label>
         <input
           id="password"
           type="password"
@@ -38,18 +41,18 @@
           formControlName="password"
         />
         @if (userForm.controls.password.invalid && userForm.controls.password.touched) {
-          <p [class]="classNames.fieldError">Enter your password.</p>
+          <p [class]="classNames.fieldError">{{ 'login.password_error' | t }}</p>
         }
       </div>
 
       @if (error()) {
         <p class="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-          <mat-icon class="!text-lg !size-5">error</mat-icon>{{ error() }}
+          <mat-icon class="!text-lg !size-5">error</mat-icon>{{ error()! | t }}
         </p>
       }
 
       <button type="submit" [class]="classNames.buttonPrimary + ' w-full'" [disabled]="loading()">
-        {{ loading() ? 'Signing in…' : 'Sign in' }}
+        {{ (loading() ? 'login.submitting' : 'login.submit') | t }}
       </button>
     </form>
   </div>

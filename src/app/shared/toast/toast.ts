@@ -1,12 +1,13 @@
 import { Component, inject } from '@angular/core';
 import { MatIcon } from '@angular/material/icon';
 import { ToastService } from './toast.service';
+import { TranslatePipe } from '../i18n/i18n.pipes';
 
 @Component({
   selector: 'app-toasts',
-  imports: [MatIcon],
+  imports: [MatIcon, TranslatePipe],
   template: `
-    <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 w-80 max-w-[calc(100vw-2rem)]">
+    <div class="fixed bottom-4 end-4 z-50 flex flex-col gap-2 w-80 max-w-[calc(100vw-2rem)]">
       @for (toast of toastService.toasts(); track toast.id) {
         <div
           role="status"
@@ -20,7 +21,7 @@ import { ToastService } from './toast.service';
           <button
             type="button"
             class="opacity-70 hover:opacity-100 cursor-pointer"
-            aria-label="Dismiss"
+            [attr.aria-label]="'common.dismiss' | t"
             (click)="toastService.dismiss(toast.id)"
           >
             <mat-icon class="!size-5 !text-xl">close</mat-icon>

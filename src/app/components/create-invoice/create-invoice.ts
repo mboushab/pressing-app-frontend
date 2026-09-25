@@ -2,7 +2,6 @@ import { Component, computed, inject, OnInit, output, signal } from '@angular/co
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged, switchMap, catchError, of, startWith } from 'rxjs';
-import { CurrencyPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatIcon } from '@angular/material/icon';
 import { ClothesList } from '../../services/clothes-list';
@@ -13,10 +12,12 @@ import { Client } from '../../types/authenticate';
 import { PaymentStatus } from '../../types/invoice';
 import { classNames } from '../../shared/styles/class-names';
 import { paymentStatusLabel } from '../../shared/status';
+import { I18N_PIPES } from '../../shared/i18n/i18n.pipes';
+import { TranslationKey } from '../../shared/i18n/i18n.service';
 
 @Component({
   selector: 'app-create-invoice',
-  imports: [ReactiveFormsModule, CurrencyPipe, MatIcon],
+  imports: [ReactiveFormsModule, MatIcon, ...I18N_PIPES],
   templateUrl: './create-invoice.html',
   styleUrl: './create-invoice.css',
 })
@@ -29,7 +30,7 @@ export class CreateInvoice implements OnInit {
   created = output<string>();
 
   readonly classNames = classNames;
-  readonly paymentOptions: { value: PaymentStatus; label: string }[] = (
+  readonly paymentOptions: { value: PaymentStatus; label: TranslationKey }[] = (
     ['not_paid', 'partial_paid', 'paid'] as PaymentStatus[]
   ).map((value) => ({ value, label: paymentStatusLabel[value] }));
 
@@ -38,7 +39,7 @@ export class CreateInvoice implements OnInit {
   readonly selectedClient = signal<Client | null>(null);
   readonly showClientDropdown = signal(false);
   readonly showNewClient = signal(false);
-  readonly errorMessage = signal<string | null>(null);
+  readonly errorMessage = signal<TranslationKey | null>(null);
   readonly saving = signal(false);
   readonly paymentStatus = signal<PaymentStatus>('not_paid');
 
@@ -78,7 +79,7 @@ export class CreateInvoice implements OnInit {
   ngOnInit(): void {
     this.clothesService.getClothes().subscribe({
       next: (data) => this.clothes.set(data),
-      error: () => this.errorMessage.set('Could not load the price list.'),
+      error: () => this.errorMessage.set('error.load_prices'),
     });
   }
 
@@ -121,7 +122,9 @@ export class CreateInvoice implements OnInit {
     this.clientsService.createClient(client).subscribe({
       next: (res: { clientId: string }) => this.selectClient({ ...client, id: res.clientId }),
       error: (err: HttpErrorResponse) =>
-        this.errorMessage.set(err.error?.message ?? 'Could not create the client.'),
+        this.errorMessage.set(
+          err.status === 409 ? 'clients.error.duplicate' : 'clients.error.create',
+        ),
     });
   }
 
@@ -138,7 +141,7 @@ export class CreateInvoice implements OnInit {
     this.errorMessage.set(null);
     const client = this.selectedClient();
     if (!client?.id) {
-      this.errorMessage.set('Choose a client first.');
+      this.errorMessage.set('create.error.client');
       return;
     }
 
@@ -146,7 +149,7 @@ export class CreateInvoice implements OnInit {
       .filter((c) => this.quantity(c) > 0)
       .map((c) => ({ product: c.name, unit_price: c.price, quantity: this.quantity(c) }));
     if (details.length === 0) {
-      this.errorMessage.set('Add at least one item.');
+      this.errorMessage.set('create.error.items');
       return;
     }
 
@@ -156,7 +159,7 @@ export class CreateInvoice implements OnInit {
     if (status === 'partial_paid') {
       paid_amount = Number(this.paidAmount.value);
       if (!(paid_amount > 0 && paid_amount < this.total())) {
-        this.errorMessage.set('The amount received must be between 0 and the total.');
+        this.errorMessage.set('create.error.partial');
         return;
       }
     }
@@ -179,7 +182,7 @@ export class CreateInvoice implements OnInit {
         },
         error: (err) => {
           this.saving.set(false);
-          this.errorMessage.set(err.error?.message ?? 'Failed to create invoice.');
+          this.errorMessage.set('create.error.save');
         },
       });
   }
