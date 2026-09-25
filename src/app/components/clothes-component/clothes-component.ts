@@ -8,6 +8,7 @@ import { ToastService } from '../../shared/toast/toast.service';
 import { Drawer } from '../../shared/drawer/drawer';
 import { I18N_PIPES } from '../../shared/i18n/i18n.pipes';
 import { I18nService, TranslationKey } from '../../shared/i18n/i18n.service';
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 
 @Component({
   selector: 'app-clothes-component',
@@ -19,6 +20,7 @@ export class ClothesComponent {
   private clothesService = inject(ClothesList);
   private toast = inject(ToastService);
   private i18n = inject(I18nService);
+  private confirm = inject(ConfirmService);
 
   readonly classNames = classNames;
   readonly clothes = signal<Clothe[]>([]);
@@ -88,8 +90,14 @@ export class ClothesComponent {
     });
   }
 
-  delete(clothe: Clothe): void {
-    if (!confirm(this.i18n.t('prices.confirm_delete', { name: clothe.name }))) return;
+  async delete(clothe: Clothe): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: this.i18n.t('confirm.delete_title'),
+      message: this.i18n.t('prices.confirm_delete', { name: clothe.name }),
+      confirmLabel: this.i18n.t('common.delete'),
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     this.clothesService.deleteClothes(clothe.id).subscribe({
       next: () => {
         this.toast.success(this.i18n.t('toast.item_removed', { name: clothe.name }));

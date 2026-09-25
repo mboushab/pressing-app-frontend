@@ -15,6 +15,7 @@ import {
 import { ToastService } from '../../shared/toast/toast.service';
 import { I18N_PIPES } from '../../shared/i18n/i18n.pipes';
 import { I18nService } from '../../shared/i18n/i18n.service';
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 
 @Component({
   selector: 'app-invoice-details',
@@ -26,6 +27,7 @@ export class InvoiceDetailsComponent {
   private readonly invoiceService = inject(InvoiceService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly confirm = inject(ConfirmService);
 
   invoiceID = input<string | null>(null);
 
@@ -62,14 +64,25 @@ export class InvoiceDetailsComponent {
     return Number(invoice.amount) - Number(invoice.paid_amount);
   }
 
-  setClothesStatus(clothes_status: ClothesStatus): void {
-    const id = this.invoiceID();
-    if (!id) return;
-    this.invoiceService.updateClothesStatus(id, clothes_status).subscribe({
+  async setClothesStatus(clothes_status: ClothesStatus): Promise<void> {
+    const invoice = this.selectedInvoice();
+    if (!invoice) return;
+    const ready = clothes_status === 'cleaned';
+    const confirmed = await this.confirm.ask({
+      title: this.i18n.t(ready ? 'confirm.clothes_ready_title' : 'confirm.clothes_to_clean_title'),
+      message: this.i18n.t(
+        ready ? 'confirm.clothes_ready_message' : 'confirm.clothes_to_clean_message',
+        { name: invoice.client.name },
+      ),
+      confirmLabel: this.i18n.t(ready ? 'confirm.clothes_ready_ok' : 'confirm.clothes_to_clean_ok'),
+    });
+    if (!confirmed) return;
+
+    this.invoiceService.updateClothesStatus(invoice.id, clothes_status).subscribe({
       next: () => {
         this.toast.success(
-          this.i18n.t(clothes_status === 'cleaned' ? 'toast.clothes_ready' : 'toast.clothes_to_clean', {
-            name: this.selectedInvoice()?.client.name ?? '',
+          this.i18n.t(ready ? 'toast.clothes_ready' : 'toast.clothes_to_clean', {
+            name: invoice.client.name,
           }),
         );
         this.invoiceService.updateInvoiceList();
@@ -78,19 +91,26 @@ export class InvoiceDetailsComponent {
     });
   }
 
-  setPaymentStatus(status: PaymentStatus, paid_amount?: number): void {
-    const id = this.invoiceID();
-    if (!id) return;
-    this.invoiceService.updatePaymentStatus(id, status, paid_amount).subscribe({
-      next: () => {
-        this.toast.success(
-          this.i18n.t('toast.payment_updated', { status: this.i18n.t(paymentStatusLabel[status]) }),
-        );
-        this.showPartialForm.set(false);
-        this.invoiceService.updateInvoiceList();
-      },
-      error: () => this.toast.error(this.i18n.t('toast.payment_error')),
+  async markPaid(invoice: InvoiceDetails): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: this.i18n.t('confirm.paid_title'),
+      message: this.i18n.t('confirm.paid_message', {
+        name: invoice.client.name,
+        amount: this.i18n.money(invoice.amount),
+      }),
+      confirmLabel: this.i18n.t('common.confirm'),
     });
+    if (confirmed) this.savePayment(invoice, 'paid');
+  }
+
+  async markNotPaid(invoice: InvoiceDetails): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: this.i18n.t('confirm.not_paid_title'),
+      message: this.i18n.t('confirm.not_paid_message', { name: invoice.client.name }),
+      confirmLabel: this.i18n.t('confirm.not_paid_ok'),
+      tone: 'danger',
+    });
+    if (confirmed) this.savePayment(invoice, 'not_paid');
   }
 
   openPartialForm(invoice: InvoiceDetails): void {
@@ -103,14 +123,39 @@ export class InvoiceDetailsComponent {
     this.showPartialForm.set(true);
   }
 
-  submitPartialPayment(invoice: InvoiceDetails): void {
+  async submitPartialPayment(invoice: InvoiceDetails): Promise<void> {
     const amount = this.partialAmountControl.value;
     if (amount === null || this.partialAmountControl.invalid) {
       this.partialAmountControl.markAsTouched();
       return;
     }
     // paying the whole amount is simply "paid"
-    if (amount >= Number(invoice.amount)) this.setPaymentStatus('paid');
-    else this.setPaymentStatus('partial_paid', amount);
+    if (amount >= Number(invoice.amount)) {
+      await this.markPaid(invoice);
+      return;
+    }
+    const confirmed = await this.confirm.ask({
+      title: this.i18n.t('confirm.partial_title'),
+      message: this.i18n.t('confirm.partial_message', {
+        name: invoice.client.name,
+        amount: this.i18n.money(amount),
+        rest: this.i18n.money(Number(invoice.amount) - amount),
+      }),
+      confirmLabel: this.i18n.t('common.confirm'),
+    });
+    if (confirmed) this.savePayment(invoice, 'partial_paid', amount);
+  }
+
+  private savePayment(invoice: InvoiceDetails, status: PaymentStatus, paid_amount?: number): void {
+    this.invoiceService.updatePaymentStatus(invoice.id, status, paid_amount).subscribe({
+      next: () => {
+        this.toast.success(
+          this.i18n.t('toast.payment_updated', { status: this.i18n.t(paymentStatusLabel[status]) }),
+        );
+        this.showPartialForm.set(false);
+        this.invoiceService.updateInvoiceList();
+      },
+      error: () => this.toast.error(this.i18n.t('toast.payment_error')),
+    });
   }
 }

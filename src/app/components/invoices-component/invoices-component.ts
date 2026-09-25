@@ -15,6 +15,7 @@ import { ToastService } from '../../shared/toast/toast.service';
 import { I18N_PIPES } from '../../shared/i18n/i18n.pipes';
 import { I18nService, TranslationKey } from '../../shared/i18n/i18n.service';
 import { Drawer } from '../../shared/drawer/drawer';
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { CreateInvoice } from '../create-invoice/create-invoice';
 import { SearchComponent } from '../search-component/search-component';
 import { InvoiceDetailsComponent } from '../invoice-details-component/invoice-details-component';
@@ -38,6 +39,7 @@ export class InvoicesComponent {
   private readonly invoiceService = inject(InvoiceService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly confirm = inject(ConfirmService);
   private readonly router = inject(Router);
   readonly isAdmin = inject(UserService).isAdmin();
 
@@ -97,12 +99,23 @@ export class InvoicesComponent {
     this.invoiceID.set(invoiceId);
   }
 
-  toggleClothesStatus(invoice: Invoice): void {
+  async toggleClothesStatus(invoice: Invoice): Promise<void> {
     const next: ClothesStatus = invoice.clothes_status === 'cleaned' ? 'not_cleaned' : 'cleaned';
+    const ready = next === 'cleaned';
+    const confirmed = await this.confirm.ask({
+      title: this.i18n.t(ready ? 'confirm.clothes_ready_title' : 'confirm.clothes_to_clean_title'),
+      message: this.i18n.t(
+        ready ? 'confirm.clothes_ready_message' : 'confirm.clothes_to_clean_message',
+        { name: invoice.client.name },
+      ),
+      confirmLabel: this.i18n.t(ready ? 'confirm.clothes_ready_ok' : 'confirm.clothes_to_clean_ok'),
+    });
+    if (!confirmed) return;
+
     this.invoiceService.updateClothesStatus(invoice.id, next).subscribe({
       next: () => {
         this.toast.success(
-          this.i18n.t(next === 'cleaned' ? 'toast.clothes_ready' : 'toast.clothes_to_clean', {
+          this.i18n.t(ready ? 'toast.clothes_ready' : 'toast.clothes_to_clean', {
             name: invoice.client.name,
           }),
         );
@@ -112,8 +125,14 @@ export class InvoicesComponent {
     });
   }
 
-  deleteInvoice(invoice: Invoice): void {
-    if (!confirm(this.i18n.t('invoices.confirm_delete', { name: invoice.client.name }))) return;
+  async deleteInvoice(invoice: Invoice): Promise<void> {
+    const confirmed = await this.confirm.ask({
+      title: this.i18n.t('confirm.delete_title'),
+      message: this.i18n.t('invoices.confirm_delete', { name: invoice.client.name }),
+      confirmLabel: this.i18n.t('common.delete'),
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     this.invoiceService.deleteInvoice(invoice.id).subscribe({
       next: () => {
         if (this.invoiceID() === invoice.id) this.invoiceID.set(null);

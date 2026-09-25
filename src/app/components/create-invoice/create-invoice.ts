@@ -13,7 +13,8 @@ import { PaymentStatus } from '../../types/invoice';
 import { classNames } from '../../shared/styles/class-names';
 import { paymentStatusLabel } from '../../shared/status';
 import { I18N_PIPES } from '../../shared/i18n/i18n.pipes';
-import { TranslationKey } from '../../shared/i18n/i18n.service';
+import { I18nService, TranslationKey } from '../../shared/i18n/i18n.service';
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 
 @Component({
   selector: 'app-create-invoice',
@@ -25,6 +26,8 @@ export class CreateInvoice implements OnInit {
   private clothesService = inject(ClothesList);
   private clientsService = inject(ClientsService);
   private invoiceService = inject(InvoiceService);
+  private i18n = inject(I18nService);
+  private confirm = inject(ConfirmService);
 
   closeForm = output<void>();
   created = output<string>();
@@ -137,7 +140,7 @@ export class CreateInvoice implements OnInit {
     this.quantities.update((q) => ({ ...q, [clothe.id]: qty }));
   }
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     this.errorMessage.set(null);
     const client = this.selectedClient();
     if (!client?.id) {
@@ -163,6 +166,18 @@ export class CreateInvoice implements OnInit {
         return;
       }
     }
+
+    const confirmed = await this.confirm.ask({
+      title: this.i18n.t('confirm.create_title'),
+      message: this.i18n.t('confirm.create_message', {
+        total: this.i18n.money(this.total()),
+        name: client.name,
+        count: this.itemCount(),
+        status: this.i18n.t(paymentStatusLabel[status]),
+      }),
+      confirmLabel: this.i18n.t('confirm.create_ok'),
+    });
+    if (!confirmed) return;
 
     this.saving.set(true);
     this.invoiceService

@@ -13,6 +13,7 @@ import { Drawer } from '../../../shared/drawer/drawer';
 import { SearchComponent } from '../../search-component/search-component';
 import { TranslatePipe } from '../../../shared/i18n/i18n.pipes';
 import { I18nService, TranslationKey } from '../../../shared/i18n/i18n.service';
+import { ConfirmService } from '../../../shared/confirm/confirm.service';
 
 @Component({
   selector: 'app-clients-component',
@@ -24,6 +25,7 @@ export class ClientsComponent {
   private readonly clientsService = inject(ClientsService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly confirm = inject(ConfirmService);
   readonly isAdmin = inject(UserService).isAdmin();
   readonly classNames = classNames;
 
@@ -94,8 +96,15 @@ export class ClientsComponent {
     });
   }
 
-  deleteClient(client: Client): void {
-    if (!client.id || !confirm(this.i18n.t('clients.confirm_delete', { name: client.name }))) return;
+  async deleteClient(client: Client): Promise<void> {
+    if (!client.id) return;
+    const confirmed = await this.confirm.ask({
+      title: this.i18n.t('confirm.delete_title'),
+      message: this.i18n.t('clients.confirm_delete', { name: client.name }),
+      confirmLabel: this.i18n.t('common.delete'),
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     this.clientsService.deleteClient(client.id).subscribe({
       next: () => {
         this.toast.success(this.i18n.t('toast.client_deleted', { name: client.name }));

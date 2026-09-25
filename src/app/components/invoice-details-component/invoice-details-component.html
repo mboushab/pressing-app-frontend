@@ -97,7 +97,7 @@
           @if (invoice.status !== 'paid') {
             <button
               [class]="classNames.buttonPrimary + ' flex-1'"
-              (click)="setPaymentStatus('paid')"
+              (click)="markPaid(invoice)"
             >
               <mat-icon>payments</mat-icon> {{ 'invoice.paid_in_full' | t }}
             </button>
@@ -111,7 +111,7 @@
           @if (invoice.status !== 'not_paid') {
             <button
               class="text-sm text-slate-500 underline hover:text-slate-700 cursor-pointer px-2"
-              (click)="setPaymentStatus('not_paid')"
+              (click)="markNotPaid(invoice)"
             >
               {{ 'invoice.mark_not_paid' | t }}
             </button>

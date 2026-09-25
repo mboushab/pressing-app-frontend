@@ -162,6 +162,26 @@ const fr = {
   'toast.item_updated': '{name} modifié.',
   'toast.item_removed': '{name} retiré.',
   'toast.user_created': 'Utilisateur {name} créé.',
+
+  'common.confirm': 'Confirmer',
+  'confirm.delete_title': 'Confirmer la suppression',
+  'confirm.clothes_ready_title': 'Vêtements prêts ?',
+  'confirm.clothes_ready_message': 'Marquer les vêtements de {name} comme prêts à récupérer ?',
+  'confirm.clothes_ready_ok': 'Oui, prêts',
+  'confirm.clothes_to_clean_title': 'Remettre à nettoyer ?',
+  'confirm.clothes_to_clean_message': 'Remettre les vêtements de {name} au statut « à nettoyer » ?',
+  'confirm.clothes_to_clean_ok': 'Oui, remettre',
+  'confirm.paid_title': 'Confirmer le paiement',
+  'confirm.paid_message': '{name} a payé la totalité de la facture : {amount} ?',
+  'confirm.partial_title': 'Confirmer le paiement partiel',
+  'confirm.partial_message': '{name} a payé {amount} au total. Il restera {rest} à payer.',
+  'confirm.not_paid_title': 'Annuler le paiement ?',
+  'confirm.not_paid_message':
+    'Marquer la facture de {name} comme non payée ? Le montant payé sera remis à 0.',
+  'confirm.not_paid_ok': 'Oui, non payée',
+  'confirm.create_title': 'Créer la facture ?',
+  'confirm.create_message': 'Facture de {total} pour {name} ({count} pièce(s)) — {status}.',
+  'confirm.create_ok': 'Créer',
 } as const;
 
 const ar: Record<keyof typeof fr, string> = {
@@ -327,6 +347,25 @@ const ar: Record<keyof typeof fr, string> = {
   'toast.item_updated': 'تم تعديل {name}.',
   'toast.item_removed': 'تمت إزالة {name}.',
   'toast.user_created': 'تم إنشاء المستخدم {name}.',
+
+  'common.confirm': 'تأكيد',
+  'confirm.delete_title': 'تأكيد الحذف',
+  'confirm.clothes_ready_title': 'الملابس جاهزة؟',
+  'confirm.clothes_ready_message': 'تحديد ملابس {name} كجاهزة للاستلام؟',
+  'confirm.clothes_ready_ok': 'نعم، جاهزة',
+  'confirm.clothes_to_clean_title': 'إعادة إلى التنظيف؟',
+  'confirm.clothes_to_clean_message': 'إعادة ملابس {name} إلى حالة «للتنظيف»؟',
+  'confirm.clothes_to_clean_ok': 'نعم، إعادة',
+  'confirm.paid_title': 'تأكيد الدفع',
+  'confirm.paid_message': 'هل دفع {name} كامل مبلغ الفاتورة: {amount}؟',
+  'confirm.partial_title': 'تأكيد الدفع الجزئي',
+  'confirm.partial_message': 'دفع {name} ما مجموعه {amount}. سيبقى {rest} للدفع.',
+  'confirm.not_paid_title': 'إلغاء الدفع؟',
+  'confirm.not_paid_message': 'تحديد فاتورة {name} كغير مدفوعة؟ سيُعاد المبلغ المدفوع إلى 0.',
+  'confirm.not_paid_ok': 'نعم، غير مدفوعة',
+  'confirm.create_title': 'إنشاء الفاتورة؟',
+  'confirm.create_message': 'فاتورة بمبلغ {total} لـ {name} (عدد القطع: {count}) — {status}.',
+  'confirm.create_ok': 'إنشاء',
 };
 
 export const translations = { fr, ar } as const;
