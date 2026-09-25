@@ -2,7 +2,7 @@
   <div class="bg-white p-4 rounded shadow mt-6 space-y-3">
     <h2 class="text-xl font-bold mb-2">Invoice Details</h2>
 
-    <p><strong>Invoice ID:</strong> {{ invoice.client.phone_number }}</p>
+    <p><strong>Invoice ID:</strong> {{ invoice.id }}</p>
     <p><strong>Client:</strong> {{ invoice.client.name }} ({{ invoice.client.phone_number }})</p>
     <p><strong>Amount:</strong> {{ invoice.amount | currency }}</p>
     <p><strong>Paid:</strong> {{ invoice.paid_amount | currency }}</p>
@@ -20,7 +20,7 @@
       >
         {{ invoice.clothes_status }}
       </span>
-      @if (invoice.clothes_status === 'cleaned') {
+      @if (invoice.clothes_status === 'not_cleaned') {
         <button
           class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
           (click)="setClothesStatus('cleaned')"
@@ -28,12 +28,43 @@
           Mark as Cleaned
         </button>
       }
-      @if (invoice.clothes_status === 'not_cleaned') {
+    </div>
+
+    <!-- Payment Status -->
+    <div class="flex items-center gap-3 flex-wrap">
+      <span class="font-semibold">Payment:</span>
+      <span
+        class="px-2 py-0.5 rounded text-sm font-medium"
+        [class]="
+          invoice.status === 'paid'
+            ? 'bg-green-100 text-green-700'
+            : invoice.status === 'partial_paid'
+              ? 'bg-orange-100 text-orange-700'
+              : 'bg-red-100 text-red-700'
+        "
+      >
+        {{ invoice.status }}
+      </span>
+      @if (invoice.status !== 'paid') {
         <button
-          class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600"
-          (click)="setClothesStatus('not_cleaned')"
+          class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+          (click)="setPaymentStatus('paid')"
         >
-          Mark as Pending
+          Mark as Paid
+        </button>
+        <button
+          class="bg-orange-500 text-white px-3 py-1 rounded text-sm hover:bg-orange-600"
+          (click)="showPartialForm.set(true)"
+        >
+          Partial Payment
+        </button>
+      }
+      @if (invoice.status !== 'not_paid') {
+        <button
+          class="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600"
+          (click)="setPaymentStatus('not_paid')"
+        >
+          Mark as Not Paid
         </button>
       }
     </div>

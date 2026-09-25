@@ -35,7 +35,8 @@
           <td class="py-2 px-4 border-b border-gray-200">
             <select
               class="ml-2 border border-gray-300 rounded px-2 py-1 focus:outline-none"
-              (change)="setClothesStatus($event, invoice.id)"
+              (click)="$event.stopPropagation()"
+              (change)="setClothesStatus($event, invoice)"
               [value]="invoice.clothes_status"
             >
               <option value="cleaned">Cleaned</option>

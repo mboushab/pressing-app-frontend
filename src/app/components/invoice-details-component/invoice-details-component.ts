@@ -3,7 +3,8 @@ import { CurrencyPipe } from '@angular/common';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { InvoiceService } from '../../services/invoice-service';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, of, Subject, switchMap } from 'rxjs';
+import { catchError, map, merge, of, switchMap } from 'rxjs';
+import { ClothesStatus, PaymentStatus } from '../../types/invoice';
 
 @Component({
   selector: 'app-invoice-details',
@@ -22,12 +23,14 @@ export class InvoiceDetailsComponent {
   showPartialForm = signal(false);
   partialAmountControl = new FormControl<number | null>(null, [
     Validators.required,
-    Validators.min(0),
+    Validators.min(0.01),
   ]);
 
-  private readonly refresh$ = new Subject<void>();
-
-  private readonly invoiceDetails$ = toObservable(this.invoiceID).pipe(
+  // reload when another invoice is selected or when the invoice list is refreshed
+  private readonly invoiceDetails$ = merge(
+    toObservable(this.invoiceID),
+    this.invoiceService.refresh$.pipe(map(() => this.invoiceID())),
+  ).pipe(
     switchMap((invoiceId) =>
       this.invoiceService.getInvoiceDetails(invoiceId).pipe(
         catchError((error) => {
@@ -42,7 +45,7 @@ export class InvoiceDetailsComponent {
     initialValue: null,
   });
 
-  setClothesStatus(clothes_status: 'cleaned' | 'not_cleaned'): void {
+  setClothesStatus(clothes_status: ClothesStatus): void {
     const id = this.invoiceID();
     if (!id) return;
     this.errorMessage.set(null);
@@ -57,18 +60,16 @@ export class InvoiceDetailsComponent {
     });
   }
 
-  setPaymentStatus(
-    payment_status: 'not_paid' | 'partial_paid' | 'paid',
-    paid_amount?: number,
-  ): void {
+  setPaymentStatus(status: PaymentStatus, paid_amount?: number): void {
     const id = this.invoiceID();
     if (!id) return;
     this.errorMessage.set(null);
     this.successMessage.set(null);
-    this.invoiceService.updatePaymentStatus(id, payment_status, paid_amount).subscribe({
+    this.invoiceService.updatePaymentStatus(id, status, paid_amount).subscribe({
       next: () => {
-        this.successMessage.set(`Payment marked as "${payment_status}".`);
+        this.successMessage.set(`Payment marked as "${status}".`);
         this.showPartialForm.set(false);
+        this.partialAmountControl.reset();
         this.invoiceService.updateInvoiceList();
       },
       error: (err) =>

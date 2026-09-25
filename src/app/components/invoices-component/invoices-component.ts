@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal, effect, WritableSignal } from '@angular/core';
-import { Invoice } from '../../types/invoice';
+import { ClothesStatus, Invoice } from '../../types/invoice';
 import { CurrencyPipe } from '@angular/common';
 import { UserService } from '../../services/user-sevice';
 import { classNames } from '../../shared/styles/class-names';
@@ -59,9 +59,16 @@ export class InvoicesComponent {
     this.invoiceID.set(index);
   }
 
-  setClothesStatus($event: Event, invoiceId: string): void {
-    const status = ($event.target as HTMLSelectElement).value as 'cleaned' | 'not_cleaned';
-    this.invoiceService.updateClothesStatus(invoiceId, status);
+  setClothesStatus($event: Event, invoice: Invoice): void {
+    const select = $event.target as HTMLSelectElement;
+    const status = select.value as ClothesStatus;
+    this.invoiceService.updateClothesStatus(invoice.id, status).subscribe({
+      next: () => this.invoiceService.updateInvoiceList(),
+      error: (error) => {
+        console.error('Error while updating clothes status', error);
+        select.value = invoice.clothes_status;
+      },
+    });
   }
 
   onSearch(query: string): void {
