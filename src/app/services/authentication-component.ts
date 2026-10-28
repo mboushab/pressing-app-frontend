@@ -20,6 +20,8 @@ export class AuthenticationService {
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUserRole');
     localStorage.removeItem('currentUsername');
+    localStorage.removeItem('currentCenterId');
+    localStorage.removeItem('currentCenterRole');
     return of(true);
   }
 }

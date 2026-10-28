@@ -3,6 +3,17 @@ import { User } from '../types/authenticate';
 import { HttpClient } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 
+/** A pressing the user belongs to, as returned at login. */
+export interface UserCenter {
+  id: string;
+  name: string;
+  status: 'PENDING' | 'ACTIVE' | 'SUSPENDED';
+  role: 'CENTER_ADMIN' | 'CENTER_STAFF';
+}
+
+const CENTER_ID_KEY = 'currentCenterId';
+const CENTER_ROLE_KEY = 'currentCenterRole';
+
 export interface UserSummary {
   id: string;
   username: string;
@@ -20,8 +31,33 @@ export class UserService {
     return localStorage.getItem('currentUserRole') || '';
   }
 
+  /** Admin of the current pressing (dashboard, team, deletions). */
   isAdmin(): boolean {
-    return this.getUserRole().toUpperCase() === 'ADMIN';
+    const centerRole = localStorage.getItem(CENTER_ROLE_KEY);
+    // sessions opened before pressings existed only know the global role
+    if (centerRole === null) return this.getUserRole().toUpperCase() === 'ADMIN';
+    return centerRole === 'CENTER_ADMIN';
+  }
+
+  /** Pressing sent with every request (X-Center-Id), or null to let the server pick the only one. */
+  getCenterId(): string | null {
+    return localStorage.getItem(CENTER_ID_KEY);
+  }
+
+  /** Remembers the pressing to work in: the first active one. */
+  setCenters(centers: UserCenter[]): void {
+    const center = centers.find((c) => c.status === 'ACTIVE') ?? centers[0];
+    if (center) {
+      localStorage.setItem(CENTER_ID_KEY, center.id);
+      localStorage.setItem(CENTER_ROLE_KEY, center.role);
+    } else {
+      this.clearCenter();
+    }
+  }
+
+  clearCenter(): void {
+    localStorage.removeItem(CENTER_ID_KEY);
+    localStorage.removeItem(CENTER_ROLE_KEY);
   }
 
   getUsername(): string {

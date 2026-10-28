@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatIcon } from '@angular/material/icon';
 import { AuthenticationService } from '../../services/authentication-component';
+import { UserService } from '../../services/user-sevice';
 import { classNames } from '../../shared/styles/class-names';
 import { TranslatePipe } from '../../shared/i18n/i18n.pipes';
 import { TranslationKey } from '../../shared/i18n/i18n.service';
@@ -18,6 +19,7 @@ import { LangSwitch } from '../../shared/i18n/lang-switch';
 export class LoginComponent {
   private readonly authService = inject(AuthenticationService);
   private readonly router = inject(Router);
+  private readonly userService = inject(UserService);
 
   readonly classNames = classNames;
   readonly error = signal<TranslationKey | null>(null);
@@ -48,8 +50,9 @@ export class LoginComponent {
         localStorage.setItem('authToken', 'Bearer ' + res.token);
         localStorage.setItem('currentUserRole', res.role);
         localStorage.setItem('currentUsername', username);
-        // the dashboard is for admins; employees start on the invoices
-        void this.router.navigate([res.role === 'ADMIN' ? '/app/home' : '/app/invoices']);
+        this.userService.setCenters(res.centers ?? []);
+        // the dashboard is for pressing admins; employees start on the invoices
+        void this.router.navigate([this.userService.isAdmin() ? '/app/home' : '/app/invoices']);
       },
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);

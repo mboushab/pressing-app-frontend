@@ -24,6 +24,12 @@ export const authExpiredInterceptor: HttpInterceptorFn = (req, next) => {
     });
   }
 
+  // the pressing the user works in; the server checks they belong to it
+  const centerId = localStorage.getItem('currentCenterId');
+  if (token && centerId) {
+    requestToSend = requestToSend.clone({ setHeaders: { 'X-Center-Id': centerId } });
+  }
+
   return next(requestToSend).pipe(
     catchError((err: unknown) => {
       // 401 = missing/invalid/expired token; 403 = logged in but not allowed
