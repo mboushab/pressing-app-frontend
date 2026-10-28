@@ -11,7 +11,7 @@ export interface InvoiceClient {
   phone_number: string;
 }
 
-export type ClothesStatus = 'not_cleaned' | 'cleaned';
+export type ClothesStatus = 'not_cleaned' | 'cleaned' | 'picked_up';
 export type PaymentStatus = 'not_paid' | 'partial_paid' | 'paid';
 
 export interface Invoice {
@@ -19,14 +19,23 @@ export interface Invoice {
   client_id: string;
   amount: number;
   clothes_status: ClothesStatus;
+  /** when the client collected the clothes (null until picked up) */
+  picked_up_at: string | null;
   status: PaymentStatus;
   paid_amount: number;
   created_at: string;
   client: InvoiceClient;
 }
 
+export interface InvoicePayment {
+  /** negative when a payment was cancelled */
+  amount: number;
+  created_at: string;
+}
+
 export interface InvoiceDetails extends Invoice {
   details: InvoiceDetailItem[];
+  payments: InvoicePayment[];
 }
 
 export interface CreateInvoicePayload {

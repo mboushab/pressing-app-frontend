@@ -39,17 +39,39 @@
           {{ clothesStatusLabel[invoice.clothes_status] | t }}
         </span>
       </div>
-      @if (invoice.clothes_status === 'not_cleaned') {
-        <button [class]="classNames.buttonPrimary + ' w-full'" (click)="setClothesStatus('cleaned')">
-          <mat-icon>done_all</mat-icon> {{ 'invoice.mark_ready' | t }}
-        </button>
-      } @else {
-        <button
-          [class]="classNames.buttonSecondary + ' w-full'"
-          (click)="setClothesStatus('not_cleaned')"
-        >
-          <mat-icon class="rtl:-scale-x-100">undo</mat-icon> {{ 'invoice.back_to_clean' | t }}
-        </button>
+      @switch (invoice.clothes_status) {
+        @case ('not_cleaned') {
+          <button [class]="classNames.buttonPrimary + ' w-full'" (click)="markReady(invoice)">
+            <mat-icon>done_all</mat-icon> {{ 'invoice.mark_ready' | t }}
+          </button>
+        }
+        @case ('cleaned') {
+          <div class="flex flex-wrap gap-2">
+            <button [class]="classNames.buttonPrimary + ' flex-1'" (click)="markPickedUp(invoice)">
+              <mat-icon>shopping_bag</mat-icon> {{ 'invoice.mark_picked_up' | t }}
+            </button>
+            <button
+              class="text-sm text-slate-500 underline hover:text-slate-700 cursor-pointer px-2"
+              (click)="markToClean(invoice)"
+            >
+              {{ 'invoice.back_to_clean' | t }}
+            </button>
+          </div>
+        }
+        @case ('picked_up') {
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="flex items-center gap-1.5 text-sm text-slate-600">
+              <mat-icon class="!size-5 !text-[20px] !text-green-600">check_circle</mat-icon>
+              {{ 'invoice.picked_up_at' | t: { date: (invoice.picked_up_at | appDate: 'datetime') } }}
+            </p>
+            <button
+              class="text-sm text-slate-500 underline hover:text-slate-700 cursor-pointer px-2"
+              (click)="undoPickup(invoice)"
+            >
+              {{ 'invoice.undo_pickup' | t }}
+            </button>
+          </div>
+        }
       }
     </div>
 
@@ -62,60 +84,46 @@
         </span>
       </div>
 
-      @if (showPartialForm()) {
-        <form class="space-y-2" (submit)="$event.preventDefault(); submitPartialPayment(invoice)">
-          <label for="partial-amount" [class]="classNames.label">{{
-            'invoice.amount_received_total' | t
-          }}</label>
-          <div class="flex gap-2">
-            <input
-              id="partial-amount"
-              type="number"
-              step="0.01"
-              min="0"
-              [max]="invoice.amount"
-              [formControl]="partialAmountControl"
-              [class]="classNames.input"
-            />
-            <button type="submit" [class]="classNames.buttonWarning">{{ 'common.save' | t }}</button>
-            <button
-              type="button"
-              [class]="classNames.buttonSecondary"
-              (click)="showPartialForm.set(false)"
-            >
-              {{ 'common.cancel' | t }}
-            </button>
-          </div>
-          @if (partialAmountControl.invalid && partialAmountControl.touched) {
-            <p [class]="classNames.fieldError">
-              {{ 'invoice.amount_range' | t: { max: (invoice.amount | money) } }}
-            </p>
-          }
-        </form>
-      } @else {
-        <div class="flex flex-wrap gap-2">
-          @if (invoice.status !== 'paid') {
-            <button
-              [class]="classNames.buttonPrimary + ' flex-1'"
-              (click)="markPaid(invoice)"
-            >
-              <mat-icon>payments</mat-icon> {{ 'invoice.paid_in_full' | t }}
-            </button>
-            <button
-              [class]="classNames.buttonSecondary + ' flex-1'"
-              (click)="openPartialForm(invoice)"
-            >
-              {{ 'invoice.partial_payment' | t }}
-            </button>
-          }
-          @if (invoice.status !== 'not_paid') {
-            <button
-              class="text-sm text-slate-500 underline hover:text-slate-700 cursor-pointer px-2"
-              (click)="markNotPaid(invoice)"
-            >
-              {{ 'invoice.mark_not_paid' | t }}
-            </button>
-          }
+      <div class="flex flex-wrap gap-2">
+        @if (invoice.status !== 'paid') {
+          <button [class]="classNames.buttonPrimary + ' flex-1'" (click)="markPaid(invoice)">
+            <mat-icon>payments</mat-icon> {{ 'invoice.paid_in_full' | t }}
+          </button>
+          <button [class]="classNames.buttonSecondary + ' flex-1'" (click)="recordPartial(invoice)">
+            {{ 'invoice.partial_payment' | t }}
+          </button>
+        }
+        @if (invoice.status !== 'not_paid') {
+          <button [class]="classNames.buttonSecondary + ' flex-1'" (click)="printInvoice(invoice)">
+            <mat-icon>print</mat-icon> {{ 'print.action' | t }}
+          </button>
+          <button
+            class="text-sm text-slate-500 underline hover:text-slate-700 cursor-pointer px-2"
+            (click)="markNotPaid(invoice)"
+          >
+            {{ 'invoice.mark_not_paid' | t }}
+          </button>
+        }
+      </div>
+
+      @if (invoice.payments.length) {
+        <div class="border-t border-slate-100 pt-3">
+          <p class="mb-1 text-xs font-semibold uppercase text-slate-500 rtl:normal-case">
+            {{ 'invoice.payments_title' | t }}
+          </p>
+          <ul class="space-y-1 text-sm">
+            @for (payment of invoice.payments; track $index) {
+              <li class="flex justify-between gap-3">
+                <span class="text-slate-500">{{ payment.created_at | appDate: 'datetime' }}</span>
+                <span
+                  class="font-medium tabular-nums"
+                  [class]="payment.amount < 0 ? 'text-red-700' : 'text-slate-800'"
+                >
+                  {{ payment.amount < 0 ? ('invoice.payment_cancelled' | t) + ' ' : '' }}{{ payment.amount | money }}
+                </span>
+              </li>
+            }
+          </ul>
         </div>
       }
     </div>

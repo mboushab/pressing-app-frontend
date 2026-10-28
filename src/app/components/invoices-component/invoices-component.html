@@ -43,9 +43,9 @@
           <th [class]="classNames.th">{{ 'invoices.col.client' | t }}</th>
           <th [class]="classNames.th + ' hidden md:table-cell'">{{ 'invoices.col.date' | t }}</th>
           <th [class]="classNames.th + ' text-end hidden sm:table-cell'">{{ 'common.total' | t }}</th>
-          <th [class]="classNames.th + ' text-end'">{{ 'common.balance_due' | t }}</th>
+          <th [class]="classNames.th + ' text-end hidden sm:table-cell'">{{ 'common.balance_due' | t }}</th>
           <th [class]="classNames.th">{{ 'invoices.col.clothes' | t }}</th>
-          <th [class]="classNames.th + ' hidden sm:table-cell'">{{ 'invoices.col.payment' | t }}</th>
+          <th [class]="classNames.th">{{ 'invoices.col.payment' | t }}</th>
           <th [class]="classNames.th"><span class="sr-only">{{ 'common.actions' | t }}</span></th>
         </tr>
       </thead>
@@ -67,33 +67,16 @@
               {{ invoice.amount | money }}
             </td>
             <td
-              [class]="classNames.td + ' text-end whitespace-nowrap font-medium'"
+              [class]="classNames.td + ' text-end whitespace-nowrap font-medium hidden sm:table-cell'"
               [class.text-red-600]="balance(invoice) > 0"
             >
               {{ balance(invoice) > 0 ? (balance(invoice) | money) : '—' }}
             </td>
-            <td [class]="classNames.td">
-              <button
-                type="button"
-                [class]="
-                  clothesStatusClass[invoice.clothes_status] +
-                  ' cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-slate-300'
-                "
-                [title]="
-                  (invoice.clothes_status === 'cleaned'
-                    ? 'invoices.mark_to_clean'
-                    : 'invoices.mark_ready'
-                  ) | t
-                "
-                (click)="toggleClothesStatus(invoice); $event.stopPropagation()"
-              >
-                {{ clothesStatusLabel[invoice.clothes_status] | t }}
-              </button>
+            <td [class]="classNames.td" (click)="$event.stopPropagation()">
+              <app-clothes-menu [invoice]="invoice" />
             </td>
-            <td [class]="classNames.td + ' hidden sm:table-cell'">
-              <span [class]="paymentStatusClass[invoice.status]">
-                {{ paymentStatusLabel[invoice.status] | t }}
-              </span>
+            <td [class]="classNames.td" (click)="$event.stopPropagation()">
+              <app-payment-menu [invoice]="invoice" />
             </td>
             <td [class]="classNames.td + ' text-end'">
               @if (isAdmin) {

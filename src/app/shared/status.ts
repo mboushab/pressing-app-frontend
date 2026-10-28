@@ -19,9 +19,11 @@ export const paymentStatusClass: Record<PaymentStatus, string> = {
 export const clothesStatusLabel: Record<ClothesStatus, TranslationKey> = {
   not_cleaned: 'clothes.not_cleaned',
   cleaned: 'clothes.cleaned',
+  picked_up: 'clothes.picked_up',
 };
 
 export const clothesStatusClass: Record<ClothesStatus, string> = {
   not_cleaned: `${badge} bg-amber-100 text-amber-800`,
   cleaned: `${badge} bg-sky-100 text-sky-700`,
+  picked_up: `${badge} bg-slate-200 text-slate-700`,
 };

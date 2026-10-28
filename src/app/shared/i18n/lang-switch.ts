@@ -18,7 +18,7 @@ import { I18nService } from './i18n.service';
       [attr.aria-label]="i18n.lang() === 'fr' ? 'التبديل إلى العربية' : 'Passer en français'"
       (click)="i18n.toggle()"
     >
-      <mat-icon class="!text-lg !size-5">translate</mat-icon>
+      <mat-icon class="!text-[18px] !size-5">translate</mat-icon>
       {{ i18n.lang() === 'fr' ? 'العربية' : 'Français' }}
     </button>
   `,

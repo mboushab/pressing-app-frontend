@@ -43,7 +43,7 @@
             class="flex cursor-pointer items-center gap-1 border-t border-slate-100 px-3 py-2 text-cyan-700 hover:bg-cyan-50"
             (mousedown)="openNewClient()"
           >
-            <mat-icon class="!text-lg !size-5">person_add</mat-icon> {{ 'clients.new' | t }}
+            <mat-icon class="!text-[18px] !size-5">person_add</mat-icon> {{ 'clients.new' | t }}
           </li>
         </ul>
       }
@@ -174,7 +174,7 @@
 
   @if (errorMessage(); as error) {
     <p class="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-      <mat-icon class="!text-lg !size-5">error</mat-icon>
+      <mat-icon class="!text-[18px] !size-5">error</mat-icon>
       {{ error | t }}
     </p>
   }

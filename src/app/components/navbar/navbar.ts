@@ -22,7 +22,9 @@ export class Navbar {
   readonly username = this.userService.getUsername();
 
   readonly links: { path: string; label: TranslationKey; icon: string }[] = [
-    { path: '/app/home', label: 'nav.dashboard', icon: 'dashboard' },
+    ...(this.isAdmin
+      ? [{ path: '/app/home', label: 'nav.dashboard' as TranslationKey, icon: 'dashboard' }]
+      : []),
     { path: '/app/invoices', label: 'nav.invoices', icon: 'receipt_long' },
     { path: '/app/clients', label: 'nav.clients', icon: 'group' },
     { path: '/app/clothes', label: 'nav.prices', icon: 'checkroom' },

@@ -1,111 +1,217 @@
 <section [class]="classNames.container">
   <div [class]="classNames.pageHeader">
     <div>
-      <h1 [class]="classNames.pageTitle">
-        {{ (username ? 'home.hello_name' : 'home.hello') | t: { name: username } }}
-      </h1>
-      <p class="text-sm text-slate-500">{{ now | appDate: 'long' }}</p>
-    </div>
-    <div class="flex gap-2">
-      <a routerLink="/app/clients" [class]="classNames.buttonSecondary">
-        <mat-icon>person_add</mat-icon> {{ 'home.client' | t }}
-      </a>
-      <a routerLink="/app/invoices" [queryParams]="{ new: 1 }" [class]="classNames.buttonPrimary">
-        <mat-icon>add</mat-icon> {{ 'invoices.new' | t }}
-      </a>
-    </div>
-  </div>
-
-  <!-- Key figures -->
-  <div class="grid grid-cols-2 gap-3 lg:grid-cols-4 mb-6">
-    <div [class]="classNames.card + ' p-4'">
-      <div class="flex items-center gap-2 text-sm text-slate-500">
-        <mat-icon class="text-amber-600">local_laundry_service</mat-icon> {{ 'home.to_clean' | t }}
-      </div>
-      <p class="mt-1 text-3xl font-semibold text-slate-800">{{ toClean().length }}</p>
-    </div>
-    <div [class]="classNames.card + ' p-4'">
-      <div class="flex items-center gap-2 text-sm text-slate-500">
-        <mat-icon class="text-sky-600">inventory_2</mat-icon> {{ 'home.ready' | t }}
-      </div>
-      <p class="mt-1 text-3xl font-semibold text-slate-800">{{ ready().length }}</p>
-    </div>
-    <div [class]="classNames.card + ' p-4'">
-      <div class="flex items-center gap-2 text-sm text-slate-500">
-        <mat-icon class="text-red-600">account_balance_wallet</mat-icon> {{ 'home.to_collect' | t }}
-      </div>
-      <p class="mt-1 text-2xl font-semibold text-slate-800">{{ unpaidTotal() | money }}</p>
-    </div>
-    <div [class]="classNames.card + ' p-4'">
-      <div class="flex items-center gap-2 text-sm text-slate-500">
-        <mat-icon class="text-cyan-700">today</mat-icon> {{ 'home.today' | t }}
-      </div>
-      <p class="mt-1 text-3xl font-semibold text-slate-800">{{ today().length }}</p>
-    </div>
-  </div>
-
-  <div class="grid gap-6 lg:grid-cols-2">
-    <!-- Work queue -->
-    <div [class]="classNames.card">
-      <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <h2 class="font-semibold text-slate-800">{{ 'home.to_clean' | t }}</h2>
-        <span class="text-xs text-slate-400">{{ 'home.oldest_first' | t }}</span>
-      </div>
-      <ul class="divide-y divide-slate-100">
-        @for (invoice of toClean().slice(0, 8); track invoice.id) {
-          <li class="flex items-center gap-3 px-4 py-3">
-            <div class="flex-1 min-w-0">
-              <p class="truncate font-medium text-slate-800">{{ invoice.client.name }}</p>
-              <p class="text-xs text-slate-500">
-                <bdi>{{ invoice.client.phone_number }}</bdi> ·
-                {{ invoice.created_at | appDate: 'short' }}
-              </p>
-            </div>
-            <button
-              type="button"
-              class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-700 cursor-pointer hover:bg-slate-50"
-              (click)="markReady(invoice)"
-            >
-              <mat-icon class="!text-lg !size-5">done</mat-icon> {{ 'clothes.cleaned' | t }}
-            </button>
-          </li>
-        } @empty {
-          <li class="px-4 py-8 text-center text-sm text-slate-500">{{ 'home.nothing_waiting' | t }}</li>
-        }
-      </ul>
-      @if (toClean().length > 8) {
-        <a
-          routerLink="/app/invoices"
-          class="block border-t border-slate-100 px-4 py-2 text-center text-sm text-cyan-700 hover:bg-slate-50"
-          >{{ 'home.see_all' | t: { count: toClean().length } }}</a
-        >
+      <h1 [class]="classNames.pageTitle">{{ 'nav.dashboard' | t }}</h1>
+      @if (stats(); as s) {
+        <p class="text-sm text-slate-500">
+          {{ 'dash.range' | t: { from: (s.period.from | appDate: 'date'), to: (s.period.to | appDate: 'date') } }}
+          · {{ 'dash.compared_to' | t: { from: (s.previousPeriod.from | appDate: 'date'), to: (s.previousPeriod.to | appDate: 'date') } }}
+        </p>
       }
     </div>
-
-    <!-- Ready, payment pending -->
-    <div [class]="classNames.card">
-      <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <h2 class="font-semibold text-slate-800">{{ 'home.ready_unpaid' | t }}</h2>
-        <span class="text-xs text-slate-400">{{ 'home.collect_on_pickup' | t }}</span>
-      </div>
-      <ul class="divide-y divide-slate-100">
-        @for (invoice of readyUnpaid().slice(0, 8); track invoice.id) {
-          <li class="flex items-center gap-3 px-4 py-3">
-            <div class="flex-1 min-w-0">
-              <p class="truncate font-medium text-slate-800">{{ invoice.client.name }}</p>
-              <p class="text-xs text-slate-500"><bdi>{{ invoice.client.phone_number }}</bdi></p>
-            </div>
-            <span [class]="paymentStatusClass[invoice.status]">{{
-              paymentStatusLabel[invoice.status] | t
-            }}</span>
-            <span class="w-24 text-end font-semibold text-red-600">{{
-              balance(invoice) | money
-            }}</span>
-          </li>
-        } @empty {
-          <li class="px-4 py-8 text-center text-sm text-slate-500">{{ 'home.all_paid' | t }}</li>
-        }
-      </ul>
-    </div>
+    <a routerLink="/app/invoices" [queryParams]="{ new: 1 }" [class]="classNames.buttonPrimary">
+      <mat-icon>add</mat-icon> {{ 'invoices.new' | t }}
+    </a>
   </div>
+
+  <!-- one filter row, above everything it scopes -->
+  <div class="mb-5 flex flex-wrap gap-2" role="group" [attr.aria-label]="'dash.period' | t">
+    @for (p of presets; track p.key) {
+      <button
+        type="button"
+        class="rounded-full border px-3 py-1.5 text-sm cursor-pointer"
+        [class]="
+          preset() === p.key
+            ? 'border-cyan-700 bg-cyan-700 text-white'
+            : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+        "
+        [attr.aria-pressed]="preset() === p.key"
+        (click)="preset.set(p.key)"
+      >
+        {{ p.label | t }}
+      </button>
+    }
+  </div>
+
+  @if (stats(); as s) {
+    <div class="space-y-6 transition-opacity" [class.opacity-50]="loading()">
+      <!-- key figures -->
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- hero: the money that actually came in -->
+        <div [class]="classNames.card + ' p-5 sm:col-span-2'">
+          <p class="text-sm text-slate-500">{{ 'dash.collected_hint' | t }}</p>
+          <p class="mt-1 text-5xl font-semibold text-slate-900">{{ s.current.collected | money }}</p>
+          <ng-container
+            *ngTemplateOutlet="delta; context: { $implicit: change(s.current.collected, s.previous.collected) }"
+          />
+        </div>
+
+        <div [class]="classNames.card + ' p-4'">
+          <p class="text-sm text-slate-500">{{ 'dash.billed_hint' | t }}</p>
+          <p class="mt-1 text-2xl font-semibold text-slate-900">{{ s.current.billed | money }}</p>
+          <ng-container
+            *ngTemplateOutlet="delta; context: { $implicit: change(s.current.billed, s.previous.billed) }"
+          />
+        </div>
+
+        <div [class]="classNames.card + ' p-4'">
+          <p class="text-sm text-slate-500">{{ 'dash.outstanding' | t }}</p>
+          <p class="mt-1 text-2xl font-semibold text-slate-900">{{ s.outstanding.amount | money }}</p>
+          <p class="mt-1 text-sm text-slate-500">
+            {{ 'dash.outstanding_detail' | t: { count: s.outstanding.invoices } }}
+          </p>
+          @if (s.outstanding.olderThan30Days > 0) {
+            <p class="mt-1 flex items-center gap-1 text-sm text-red-700">
+              <mat-icon class="!size-4 !text-[16px]">schedule</mat-icon>
+              {{ 'dash.overdue' | t: { amount: (s.outstanding.olderThan30Days | money) } }}
+            </p>
+          }
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <!-- collection rate: a meter -->
+        <div [class]="classNames.card + ' p-4'">
+          <p class="text-sm text-slate-500">{{ 'dash.collection_rate' | t }}</p>
+          <p class="mt-1 text-2xl font-semibold text-slate-900">
+            {{ percent(s.current.collectionRate) }}
+          </p>
+          <div
+            class="mt-2 h-2 rounded-full bg-[#cde2fb]"
+            role="meter"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            [attr.aria-valuenow]="round(s.current.collectionRate * 100)"
+            [attr.aria-label]="'dash.collection_rate' | t"
+          >
+            <div
+              class="h-2 rounded-full bg-[#2a78d6]"
+              [style.width.%]="s.current.collectionRate * 100"
+            ></div>
+          </div>
+          <p class="mt-1 text-xs text-slate-500">{{ 'dash.collection_rate_hint' | t }}</p>
+        </div>
+
+        <div [class]="classNames.card + ' p-4'">
+          <p class="text-sm text-slate-500">{{ 'nav.invoices' | t }}</p>
+          <p class="mt-1 text-2xl font-semibold text-slate-900">{{ s.current.invoices }}</p>
+          <p class="text-xs text-slate-500">{{ 'dash.pieces' | t: { count: s.current.pieces } }}</p>
+          <ng-container
+            *ngTemplateOutlet="delta; context: { $implicit: change(s.current.invoices, s.previous.invoices) }"
+          />
+        </div>
+
+        <div [class]="classNames.card + ' p-4'">
+          <p class="text-sm text-slate-500">{{ 'dash.average_ticket' | t }}</p>
+          <p class="mt-1 text-2xl font-semibold text-slate-900">{{ s.current.averageTicket | money }}</p>
+          <ng-container
+            *ngTemplateOutlet="delta; context: { $implicit: change(s.current.averageTicket, s.previous.averageTicket) }"
+          />
+        </div>
+
+        <div [class]="classNames.card + ' p-4'">
+          <p class="text-sm text-slate-500">{{ 'dash.active_clients' | t }}</p>
+          <p class="mt-1 text-2xl font-semibold text-slate-900">{{ s.current.activeClients }}</p>
+          <p class="text-xs text-slate-500">
+            {{ 'dash.clients_detail' | t: { new: s.current.newClients, returning: s.current.returningClients } }}
+          </p>
+          <ng-container
+            *ngTemplateOutlet="delta; context: { $implicit: change(s.current.activeClients, s.previous.activeClients) }"
+          />
+        </div>
+      </div>
+
+      <!-- billed vs collected over time -->
+      <div [class]="classNames.card + ' p-4'">
+        <h2 class="font-semibold text-slate-800">
+          {{ (s.period.granularity === 'month' ? 'dash.chart_title_month' : 'dash.chart_title_day') | t }}
+        </h2>
+        <p class="mb-3 text-sm text-slate-500">{{ 'dash.chart_hint' | t }}</p>
+        <app-revenue-chart [series]="s.series" [granularity]="s.period.granularity" />
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-2">
+        <!-- items that bring in the most -->
+        <div [class]="classNames.card + ' p-4'">
+          <h2 class="font-semibold text-slate-800">{{ 'dash.top_items' | t }}</h2>
+          <p class="mb-3 text-sm text-slate-500">{{ 'dash.top_items_hint' | t }}</p>
+          <ul class="space-y-2.5">
+            @for (item of s.topItems; track item.product) {
+              <li>
+                <div class="flex justify-between gap-3 text-sm">
+                  <span class="truncate text-slate-800">{{ item.product }}</span>
+                  <span class="whitespace-nowrap text-slate-600">
+                    <strong class="font-semibold text-slate-900">{{ item.revenue | money }}</strong>
+                    · {{ 'dash.pieces' | t: { count: item.quantity } }}
+                  </span>
+                </div>
+                <div class="mt-1 h-2 rounded-e bg-[#2a78d6]" [style.width.%]="(item.revenue / topItemMax()) * 100"></div>
+              </li>
+            } @empty {
+              <li class="py-6 text-center text-sm text-slate-500">{{ 'dash.no_data' | t }}</li>
+            }
+          </ul>
+        </div>
+
+        <!-- best clients -->
+        <div [class]="classNames.card + ' p-4'">
+          <h2 class="font-semibold text-slate-800">{{ 'dash.top_clients' | t }}</h2>
+          <p class="mb-3 text-sm text-slate-500">{{ 'dash.top_clients_hint' | t }}</p>
+          @if (s.topClients.length) {
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-xs uppercase text-slate-500 rtl:normal-case">
+                  <th class="py-1 text-start font-semibold">{{ 'invoices.col.client' | t }}</th>
+                  <th class="py-1 text-end font-semibold">{{ 'nav.invoices' | t }}</th>
+                  <th class="py-1 text-end font-semibold">{{ 'dash.billed' | t }}</th>
+                  <th class="py-1 text-end font-semibold">{{ 'common.balance_due' | t }}</th>
+                </tr>
+              </thead>
+              <tbody class="tabular-nums">
+                @for (c of s.topClients; track c.id) {
+                  <tr class="border-t border-slate-100">
+                    <td class="py-2">
+                      <div class="font-medium text-slate-800">{{ c.name }}</div>
+                      <div class="text-xs text-slate-500"><bdi>{{ c.phone_number }}</bdi></div>
+                    </td>
+                    <td class="py-2 text-end">{{ c.invoices }}</td>
+                    <td class="py-2 text-end whitespace-nowrap">{{ c.billed | money }}</td>
+                    <td class="py-2 text-end whitespace-nowrap" [class.text-red-700]="c.owed > 0">
+                      {{ c.owed > 0 ? (c.owed | money) : '—' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <p class="py-6 text-center text-sm text-slate-500">{{ 'dash.no_data' | t }}</p>
+          }
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-500">{{ 'dash.footnote' | t }}</p>
+    </div>
+  } @else if (failed()) {
+    <p [class]="classNames.card + ' p-8 text-center text-slate-500'">{{ 'dash.error' | t }}</p>
+  } @else {
+    <p class="py-12 text-center text-slate-500">{{ 'common.loading' | t }}</p>
+  }
 </section>
+
+<!-- change vs previous period: arrow + label, never color alone -->
+<ng-template #delta let-value>
+  @if (value === null) {
+    <p class="mt-1 text-xs text-slate-500">{{ 'dash.no_comparison' | t }}</p>
+  } @else {
+    <p
+      class="mt-1 flex items-center gap-1 text-xs font-medium"
+      [class]="value > 0 ? 'text-green-700' : value < 0 ? 'text-red-700' : 'text-slate-500'"
+    >
+      <mat-icon class="!size-4 !text-[16px]">{{
+        value > 0 ? 'trending_up' : value < 0 ? 'trending_down' : 'trending_flat'
+      }}</mat-icon>
+      {{ signedPercent(value) }}
+      <span class="font-normal text-slate-500">{{ 'dash.vs_previous' | t }}</span>
+    </p>
+  }
+</ng-template>

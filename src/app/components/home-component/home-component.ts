@@ -1,69 +1,118 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { EMPTY, catchError, map, switchMap, tap } from 'rxjs';
 import { MatIcon } from '@angular/material/icon';
-import { InvoiceService } from '../../services/invoice-service';
-import { UserService } from '../../services/user-sevice';
-import { Invoice } from '../../types/invoice';
+import { StatsService } from '../../services/stats-service';
+import { DashboardStats } from '../../types/stats';
 import { classNames } from '../../shared/styles/class-names';
-import { paymentStatusClass, paymentStatusLabel } from '../../shared/status';
-import { ToastService } from '../../shared/toast/toast.service';
 import { I18N_PIPES } from '../../shared/i18n/i18n.pipes';
-import { I18nService } from '../../shared/i18n/i18n.service';
-import { ConfirmService } from '../../shared/confirm/confirm.service';
+import { I18nService, TranslationKey } from '../../shared/i18n/i18n.service';
+import { ToastService } from '../../shared/toast/toast.service';
+import { RevenueChart } from './revenue-chart';
 
+type PeriodPreset = 'today' | 'last7' | 'last30' | 'month' | 'last_month' | 'year';
+
+const pad = (n: number) => String(n).padStart(2, '0');
+/** local calendar day as YYYY-MM-DD */
+const day = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+function presetRange(preset: PeriodPreset, now = new Date()): { from: string; to: string } {
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const daysAgo = (n: number) => new Date(y, m, now.getDate() - n);
+  switch (preset) {
+    case 'today':
+      return { from: day(now), to: day(now) };
+    case 'last7':
+      return { from: day(daysAgo(6)), to: day(now) };
+    case 'last30':
+      return { from: day(daysAgo(29)), to: day(now) };
+    case 'month':
+      return { from: day(new Date(y, m, 1)), to: day(now) };
+    case 'last_month':
+      return { from: day(new Date(y, m - 1, 1)), to: day(new Date(y, m, 0)) };
+    case 'year':
+      return { from: day(new Date(y, 0, 1)), to: day(now) };
+  }
+}
+
+/** Admin dashboard: how much the shop bills and actually collects, and where it comes from. */
 @Component({
   selector: 'app-home-component',
-  imports: [RouterLink, MatIcon, ...I18N_PIPES],
+  imports: [RouterLink, NgTemplateOutlet, MatIcon, RevenueChart, ...I18N_PIPES],
   templateUrl: './home-component.html',
   styleUrl: './home-component.css',
 })
 export class HomeComponent {
-  private readonly invoiceService = inject(InvoiceService);
+  private readonly statsService = inject(StatsService);
   private readonly toast = inject(ToastService);
-  private readonly i18n = inject(I18nService);
-  private readonly confirm = inject(ConfirmService);
+  readonly i18n = inject(I18nService);
 
   readonly classNames = classNames;
-  readonly paymentStatusLabel = paymentStatusLabel;
-  readonly paymentStatusClass = paymentStatusClass;
-  readonly username = inject(UserService).getUsername();
-  readonly now = new Date();
+  readonly presets: { key: PeriodPreset; label: TranslationKey }[] = [
+    { key: 'today', label: 'dash.preset.today' },
+    { key: 'last7', label: 'dash.preset.last7' },
+    { key: 'last30', label: 'dash.preset.last30' },
+    { key: 'month', label: 'dash.preset.month' },
+    { key: 'last_month', label: 'dash.preset.last_month' },
+    { key: 'year', label: 'dash.preset.year' },
+  ];
 
-  readonly invoices = this.invoiceService.getAllInvoice(signal(''));
+  readonly preset = signal<PeriodPreset>('month');
+  readonly loading = signal(true);
+  readonly failed = signal(false);
 
-  readonly toClean = computed(() =>
-    this.invoices()
-      .filter((i) => i.clothes_status === 'not_cleaned')
-      // oldest first: those have been waiting the longest
-      .sort((a, b) => a.created_at.localeCompare(b.created_at)),
+  /** latest figures; they stay on screen (dimmed) while another period loads or if it fails */
+  readonly stats = toSignal<DashboardStats | null, null>(
+    toObservable(this.preset).pipe(
+      map((preset) => presetRange(preset)),
+      tap(() => this.loading.set(true)),
+      switchMap(({ from, to }) =>
+        this.statsService.getDashboard(from, to).pipe(
+          tap(() => {
+            this.failed.set(false);
+            this.loading.set(false);
+          }),
+          catchError(() => {
+            this.failed.set(true);
+            this.loading.set(false);
+            this.toast.error(this.i18n.t('dash.error'));
+            return EMPTY;
+          }),
+        ),
+      ),
+    ),
+    { initialValue: null },
   );
-  readonly ready = computed(() => this.invoices().filter((i) => i.clothes_status === 'cleaned'));
-  readonly readyUnpaid = computed(() => this.ready().filter((i) => i.status !== 'paid'));
-  readonly unpaidTotal = computed(() =>
-    this.invoices().reduce((sum, i) => sum + this.balance(i), 0),
-  );
-  readonly today = computed(() => {
-    const day = new Date().toDateString();
-    return this.invoices().filter((i) => new Date(i.created_at).toDateString() === day);
-  });
 
-  balance(invoice: Invoice): number {
-    return Number(invoice.amount) - Number(invoice.paid_amount);
+  readonly topItemMax = computed(() =>
+    Math.max(1, ...(this.stats()?.topItems.map((i) => i.revenue) ?? [])),
+  );
+
+  /** relative change vs the previous period, or null when there is nothing to compare to */
+  change(current: number, previous: number): number | null {
+    if (!previous) return null;
+    return (current - previous) / previous;
   }
 
-  async markReady(invoice: Invoice): Promise<void> {
-    const confirmed = await this.confirm.ask({
-      title: this.i18n.t('confirm.clothes_ready_title'),
-      message: this.i18n.t('confirm.clothes_ready_message', { name: invoice.client.name }),
-      confirmLabel: this.i18n.t('confirm.clothes_ready_ok'),
-    });
-    if (!confirmed) return;
-    this.invoiceService.updateClothesStatus(invoice.id, 'cleaned').subscribe({
-      next: () => {
-        this.toast.success(this.i18n.t('toast.clothes_ready', { name: invoice.client.name }));
-        this.invoiceService.updateInvoiceList();
-      },
-      error: () => this.toast.error('Could not update the clothes status.'),
-    });
+  percent(ratio: number): string {
+    return new Intl.NumberFormat(this.i18n.locale(), {
+      style: 'percent',
+      maximumFractionDigits: 0,
+    }).format(ratio);
+  }
+
+  round(value: number): number {
+    return Math.round(value);
+  }
+
+  signedPercent(ratio: number): string {
+    return new Intl.NumberFormat(this.i18n.locale(), {
+      style: 'percent',
+      maximumFractionDigits: 0,
+      signDisplay: 'exceptZero',
+    }).format(ratio);
   }
 }

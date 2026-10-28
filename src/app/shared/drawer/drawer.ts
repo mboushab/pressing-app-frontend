@@ -2,6 +2,7 @@ import { Component, HostListener, inject, input, output } from '@angular/core';
 import { MatIcon } from '@angular/material/icon';
 import { TranslatePipe } from '../i18n/i18n.pipes';
 import { ConfirmService } from '../confirm/confirm.service';
+import { PrintService } from '../print/print.service';
 
 /** Side panel with a backdrop; closes on backdrop click or Escape. */
 @Component({
@@ -37,11 +38,12 @@ export class Drawer {
   closed = output<void>();
 
   private readonly confirm = inject(ConfirmService);
+  private readonly print = inject(PrintService);
 
   @HostListener('document:keydown.escape', ['$event'])
   onEscape(event: Event): void {
-    // Escape while a confirmation is open only closes the confirmation
-    if (this.confirm.pending() || event.defaultPrevented) return;
+    // Escape while a confirmation or the receipt preview is open only closes that
+    if (this.confirm.pending() || this.print.previewOpen() || event.defaultPrevented) return;
     this.closed.emit();
   }
 }

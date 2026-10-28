@@ -1,8 +1,10 @@
-<div class="min-h-screen bg-slate-100">
+<div class="min-h-screen bg-slate-100 print:hidden">
   <app-navbar />
   <main>
     <router-outlet />
   </main>
   <app-toasts />
   <app-confirm-dialog />
+  <app-receipt-preview />
 </div>
+<app-invoice-receipt />

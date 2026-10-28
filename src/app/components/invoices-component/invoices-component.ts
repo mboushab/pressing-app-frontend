@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatIcon } from '@angular/material/icon';
-import { ClothesStatus, Invoice } from '../../types/invoice';
+import { Invoice } from '../../types/invoice';
 import { UserService } from '../../services/user-sevice';
 import { InvoiceService } from '../../services/invoice-service';
 import { classNames } from '../../shared/styles/class-names';
@@ -16,11 +16,13 @@ import { I18N_PIPES } from '../../shared/i18n/i18n.pipes';
 import { I18nService, TranslationKey } from '../../shared/i18n/i18n.service';
 import { Drawer } from '../../shared/drawer/drawer';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
+import { PaymentMenu } from './payment-menu';
+import { ClothesMenu } from './clothes-menu';
 import { CreateInvoice } from '../create-invoice/create-invoice';
 import { SearchComponent } from '../search-component/search-component';
 import { InvoiceDetailsComponent } from '../invoice-details-component/invoice-details-component';
 
-type InvoiceFilter = 'all' | 'to_clean' | 'ready' | 'unpaid';
+type InvoiceFilter = 'all' | 'to_clean' | 'ready' | 'picked_up' | 'unpaid';
 
 @Component({
   selector: 'app-invoices-component',
@@ -31,6 +33,8 @@ type InvoiceFilter = 'all' | 'to_clean' | 'ready' | 'unpaid';
     SearchComponent,
     InvoiceDetailsComponent,
     Drawer,
+    PaymentMenu,
+    ClothesMenu,
   ],
   templateUrl: './invoices-component.html',
   styleUrl: './invoices-component.css',
@@ -63,6 +67,7 @@ export class InvoicesComponent {
     all: () => true,
     to_clean: (i) => i.clothes_status === 'not_cleaned',
     ready: (i) => i.clothes_status === 'cleaned',
+    picked_up: (i) => i.clothes_status === 'picked_up',
     unpaid: (i) => i.status !== 'paid',
   };
 
@@ -73,6 +78,7 @@ export class InvoicesComponent {
         ['all', 'invoices.filter.all'],
         ['to_clean', 'invoices.filter.to_clean'],
         ['ready', 'invoices.filter.ready'],
+        ['picked_up', 'invoices.filter.picked_up'],
         ['unpaid', 'invoices.filter.unpaid'],
       ] as [InvoiceFilter, TranslationKey][]
     ).map(([key, label]) => ({ key, label, count: list.filter(this.matchers[key]).length }));
@@ -97,32 +103,6 @@ export class InvoicesComponent {
     this.closeCreateForm();
     this.toast.success(this.i18n.t('toast.invoice_created'));
     this.invoiceID.set(invoiceId);
-  }
-
-  async toggleClothesStatus(invoice: Invoice): Promise<void> {
-    const next: ClothesStatus = invoice.clothes_status === 'cleaned' ? 'not_cleaned' : 'cleaned';
-    const ready = next === 'cleaned';
-    const confirmed = await this.confirm.ask({
-      title: this.i18n.t(ready ? 'confirm.clothes_ready_title' : 'confirm.clothes_to_clean_title'),
-      message: this.i18n.t(
-        ready ? 'confirm.clothes_ready_message' : 'confirm.clothes_to_clean_message',
-        { name: invoice.client.name },
-      ),
-      confirmLabel: this.i18n.t(ready ? 'confirm.clothes_ready_ok' : 'confirm.clothes_to_clean_ok'),
-    });
-    if (!confirmed) return;
-
-    this.invoiceService.updateClothesStatus(invoice.id, next).subscribe({
-      next: () => {
-        this.toast.success(
-          this.i18n.t(ready ? 'toast.clothes_ready' : 'toast.clothes_to_clean', {
-            name: invoice.client.name,
-          }),
-        );
-        this.invoiceService.updateInvoiceList();
-      },
-      error: () => this.toast.error(this.i18n.t('toast.clothes_error')),
-    });
   }
 
   async deleteInvoice(invoice: Invoice): Promise<void> {

@@ -14,7 +14,7 @@ import { TranslatePipe } from '../i18n/i18n.pipes';
           class="flex items-start gap-2 rounded-lg px-4 py-3 shadow-lg text-sm text-white"
           [class]="toast.kind === 'success' ? 'bg-slate-800' : 'bg-red-600'"
         >
-          <mat-icon class="shrink-0 !size-5 !text-xl">{{
+          <mat-icon class="shrink-0 !size-5 !text-[20px]">{{
             toast.kind === 'success' ? 'check_circle' : 'error'
           }}</mat-icon>
           <span class="flex-1 pt-0.5">{{ toast.message }}</span>
@@ -24,7 +24,7 @@ import { TranslatePipe } from '../i18n/i18n.pipes';
             [attr.aria-label]="'common.dismiss' | t"
             (click)="toastService.dismiss(toast.id)"
           >
-            <mat-icon class="!size-5 !text-xl">close</mat-icon>
+            <mat-icon class="!size-5 !text-[20px]">close</mat-icon>
           </button>
         </div>
       }

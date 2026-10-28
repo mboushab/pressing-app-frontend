@@ -5,6 +5,7 @@ import { ClientsComponent } from './components/clients/clients-component/clients
 import { UsersComponent } from './components/users-component/users-component';
 import { LoginComponent } from './components/login-component/login-component';
 import { authGuard } from './guards/auth-guard';
+import { adminGuard } from './guards/admin-guard';
 import { MainLayout } from './layout/main-layout/main-layout';
 import { HomeComponent } from './components/home-component/home-component';
 
@@ -16,14 +17,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
-      { path: 'home', component: HomeComponent },
+      { path: 'home', component: HomeComponent, canActivate: [adminGuard] },
       {
         path: 'invoices',
         component: InvoicesComponent,
       },
       { path: 'clothes', component: ClothesComponent },
       { path: 'clients', component: ClientsComponent },
-      { path: 'users', component: UsersComponent },
+      { path: 'users', component: UsersComponent, canActivate: [adminGuard] },
       { path: 'create-user', redirectTo: 'users' },
     ],
   },

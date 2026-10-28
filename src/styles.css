@@ -6,3 +6,24 @@
 :lang(ar) body {
   font-family: 'Noto Sans Arabic', ui-sans-serif, system-ui, sans-serif;
 }
+
+/* Printing: only the invoice receipt is printed (the app itself is print:hidden).
+   No page margins: the receipt is sized for an 80 mm thermal roll. */
+@page {
+  margin: 0;
+}
+@media print {
+  body {
+    background: white;
+  }
+}
+
+/* Material icons: keep the glyph centred in its box whatever size is used,
+   so icons line up with the label next to them */
+mat-icon.mat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}

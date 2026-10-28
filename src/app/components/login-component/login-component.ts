@@ -48,7 +48,8 @@ export class LoginComponent {
         localStorage.setItem('authToken', 'Bearer ' + res.token);
         localStorage.setItem('currentUserRole', res.role);
         localStorage.setItem('currentUsername', username);
-        void this.router.navigate(['/app/home']);
+        // the dashboard is for admins; employees start on the invoices
+        void this.router.navigate([res.role === 'ADMIN' ? '/app/home' : '/app/invoices']);
       },
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);
