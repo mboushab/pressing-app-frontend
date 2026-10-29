@@ -1,0 +1,104 @@
+<div class="grid gap-4 sm:grid-cols-2">
+  @for (leg of legs; track leg) {
+    <div [class]="classNames.card + ' p-5'">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 class="font-semibold text-slate-800">{{ legLabel(leg) }}</h2>
+          <p class="mt-0.5 text-sm text-slate-500">{{ legHint(leg) }}</p>
+        </div>
+        <mat-icon class="!text-slate-400">{{ leg === 'PICKUP' ? 'local_shipping' : 'home' }}</mat-icon>
+      </div>
+      <p class="mt-4 text-3xl font-semibold text-slate-900 tabular-nums">
+        @if (current()[leg]; as rule) {
+          {{ rule.amount | money }}
+        } @else {
+          <span class="block text-base font-normal leading-snug text-orange-700">
+            {{ (loaded() ? 'delivery.fee_not_set' : 'common.loading') | t }}
+          </span>
+        }
+      </p>
+      @if (current()[leg]; as rule) {
+        <p class="mt-1 text-xs text-slate-500">
+          {{ 'delivery.fee_since' | t: { date: (rule.active_from | appDate: 'date') } }}
+        </p>
+      }
+      <button type="button" [class]="classNames.buttonSecondary + ' mt-4'" (click)="edit(leg)">
+        <mat-icon>edit</mat-icon> {{ 'delivery.fee_change' | t }}
+      </button>
+    </div>
+  }
+</div>
+
+<p class="mt-3 text-sm text-slate-500">{{ 'delivery.fee_note' | t }}</p>
+
+<h2 class="mb-2 mt-6 font-semibold text-slate-800">{{ 'delivery.fee_history' | t }}</h2>
+<div [class]="classNames.card + ' overflow-x-auto'">
+  <table [class]="classNames.table">
+    <thead>
+      <tr>
+        <th [class]="classNames.th">{{ 'delivery.fee_leg' | t }}</th>
+        <th [class]="classNames.th + ' text-end'">{{ 'delivery.fee_amount' | t }}</th>
+        <th [class]="classNames.th">{{ 'delivery.fee_from' | t }}</th>
+        <th [class]="classNames.th">{{ 'delivery.fee_to' | t }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (rule of history(); track rule.id) {
+        <tr>
+          <td [class]="classNames.td">{{ legLabel(rule.leg) }}</td>
+          <td [class]="classNames.td + ' text-end tabular-nums'">{{ rule.amount | money }}</td>
+          <td [class]="classNames.td + ' whitespace-nowrap'">{{ rule.active_from | appDate }}</td>
+          <td [class]="classNames.td + ' whitespace-nowrap'">
+            @if (rule.active_to) {
+              {{ rule.active_to | appDate }}
+            } @else {
+              <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                {{ 'delivery.fee_current' | t }}
+              </span>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="4" [class]="classNames.empty">
+            {{ (loaded() ? 'delivery.fee_history_empty' : 'common.loading') | t }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (editing(); as leg) {
+  <app-drawer [title]="legLabel(leg)" (closed)="editing.set(null)">
+    <form [formGroup]="form" (ngSubmit)="save()" class="space-y-4">
+      <div>
+        <label for="fee-amount" [class]="classNames.label">{{ 'delivery.fee_amount' | t }} (MRU)</label>
+        <input
+          id="fee-amount"
+          type="number"
+          min="0"
+          step="1"
+          formControlName="amount"
+          [class]="classNames.input"
+          autofocus
+        />
+        @if (form.controls.amount.invalid && form.controls.amount.touched) {
+          <p [class]="classNames.fieldError">{{ 'delivery.fee_error' | t }}</p>
+        }
+        <p class="mt-1 text-xs text-slate-500">{{ 'delivery.fee_change_hint' | t }}</p>
+      </div>
+      @if (error(); as message) {
+        <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ message | t }}</p>
+      }
+      <div class="flex justify-end gap-2">
+        <button type="button" [class]="classNames.buttonSecondary" (click)="editing.set(null)">
+          {{ 'common.cancel' | t }}
+        </button>
+        <button type="submit" [class]="classNames.buttonPrimary" [disabled]="saving()">
+          {{ (saving() ? 'common.saving' : 'common.save') | t }}
+        </button>
+      </div>
+    </form>
+  </app-drawer>
+}

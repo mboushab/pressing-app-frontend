@@ -1,0 +1,104 @@
+<section [class]="classNames.container">
+  <div [class]="classNames.pageHeader">
+    <div>
+      <h1 [class]="classNames.pageTitle">{{ 'nav.orders' | t }}</h1>
+      <p class="text-sm text-slate-500">{{ 'orders.subtitle' | t }}</p>
+    </div>
+    <button type="button" [class]="classNames.buttonSecondary" (click)="load()">
+      <mat-icon>refresh</mat-icon> {{ 'orders.refresh' | t }}
+    </button>
+  </div>
+
+  <div class="mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist">
+    @for (t of tabs; track t.key) {
+      <button
+        type="button"
+        role="tab"
+        class="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm cursor-pointer"
+        [class]="
+          tab() === t.key
+            ? 'border-cyan-700 bg-cyan-700 text-white'
+            : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+        "
+        [attr.aria-selected]="tab() === t.key"
+        (click)="select(t.key)"
+      >
+        <mat-icon class="!text-[18px] !size-5">{{ t.icon }}</mat-icon>
+        {{ t.label | t }}
+      </button>
+    }
+  </div>
+
+  @if (tab() === 'issues') {
+    <div [class]="classNames.card">
+      @for (issue of issues(); track issue.id) {
+        <button
+          type="button"
+          class="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-start last:border-b-0 hover:bg-slate-50 cursor-pointer"
+          (click)="selected.set(issue.order_id)"
+        >
+          <mat-icon class="!text-orange-600">warning</mat-icon>
+          <span class="flex-1">
+            <span class="font-medium text-slate-800">{{ labels.issue(issue.type) }}</span>
+            <span class="block text-sm text-slate-500">#{{ issue.number }} · {{ issue.created_at | appDate: 'short' }}</span>
+          </span>
+          <mat-icon class="!text-slate-400 rtl:-scale-x-100">chevron_right</mat-icon>
+        </button>
+      } @empty {
+        <p [class]="classNames.empty">{{ (loaded() ? 'orders.no_issues' : 'common.loading') | t }}</p>
+      }
+    </div>
+  } @else if (tab() === 'cash') {
+    <p class="mb-3 text-sm text-slate-500">{{ 'orders.cash_hint' | t }}</p>
+    <div [class]="classNames.card">
+      @for (p of cash(); track p.id) {
+        <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0">
+          <span class="flex-1">
+            <span class="font-medium text-slate-800">{{ p.courier_name }}</span>
+            <span class="block text-sm text-slate-500">#{{ p.number }} · {{ labels.method(p.method) }} · {{ p.created_at | appDate: 'short' }}</span>
+          </span>
+          <span class="font-semibold tabular-nums">{{ p.amount | money }}</span>
+          <button type="button" [class]="classNames.buttonPrimary" (click)="receiveCash(p)">{{ 'orders.cash_receive' | t }}</button>
+        </div>
+      } @empty {
+        <p [class]="classNames.empty">{{ (loaded() ? 'orders.no_cash' : 'common.loading') | t }}</p>
+      }
+    </div>
+  } @else {
+    <div [class]="classNames.card">
+      @for (o of list(); track o.id) {
+        <button
+          type="button"
+          class="flex w-full flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-100 px-4 py-3 text-start last:border-b-0 hover:bg-slate-50 cursor-pointer"
+          (click)="selected.set(o.id)"
+        >
+          <span class="w-14 font-semibold text-slate-500 tabular-nums">#{{ o.number }}</span>
+          <span class="min-w-40 flex-1">
+            <span class="font-medium text-slate-800">{{ o.customer_name || o.customer_phone }}</span>
+            <span class="block text-sm text-slate-500">
+              {{ labels.pickupMode(o.pickup_mode) }}
+              @if (o.pickup_at) {
+                · {{ o.pickup_at | appDate: 'short' }}
+              }
+              — {{ labels.returnMode(o.return_mode) }}
+            </span>
+          </span>
+          @if (o.open_issues) {
+            <mat-icon class="!text-orange-600" [title]="'orders.tab.issues' | t">warning</mat-icon>
+          }
+          <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="labels.statusTone(o.status)">
+            {{ labels.status(o.status) }}
+          </span>
+        </button>
+      } @empty {
+        <p [class]="classNames.empty">{{ (loaded() ? 'orders.empty' : 'common.loading') | t }}</p>
+      }
+    </div>
+  }
+
+  @if (selected(); as id) {
+    <app-drawer [title]="'orders.detail' | t" (closed)="selected.set(null)">
+      <app-order-detail [orderId]="id" (changed)="load()" />
+    </app-drawer>
+  }
+</section>

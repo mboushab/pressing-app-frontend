@@ -39,6 +39,11 @@ export class UserService {
     return centerRole === 'CENTER_ADMIN';
   }
 
+  /** Administrator of the whole platform (delivery slots and fees, couriers). */
+  isPlatformAdmin(): boolean {
+    return this.getUserRole().toUpperCase() === 'ADMIN';
+  }
+
   /** Pressing sent with every request (X-Center-Id), or null to let the server pick the only one. */
   getCenterId(): string | null {
     return localStorage.getItem(CENTER_ID_KEY);

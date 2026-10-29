@@ -8,6 +8,7 @@ import { authGuard } from './guards/auth-guard';
 import { adminGuard } from './guards/admin-guard';
 import { MainLayout } from './layout/main-layout/main-layout';
 import { HomeComponent } from './components/home-component/home-component';
+import { platformAdminGuard } from './guards/platform-admin-guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -22,9 +23,19 @@ export const routes: Routes = [
         path: 'invoices',
         component: InvoicesComponent,
       },
+      // loaded on demand, to keep the first download small
+      {
+        path: 'orders',
+        loadComponent: () => import('./components/orders/orders-page').then((m) => m.OrdersPage),
+      },
       { path: 'clothes', component: ClothesComponent },
       { path: 'clients', component: ClientsComponent },
       { path: 'users', component: UsersComponent, canActivate: [adminGuard] },
+      {
+        path: 'delivery',
+        loadComponent: () => import('./components/delivery/delivery-page').then((m) => m.DeliveryPage),
+        canActivate: [platformAdminGuard],
+      },
       { path: 'create-user', redirectTo: 'users' },
     ],
   },

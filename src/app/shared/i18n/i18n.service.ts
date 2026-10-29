@@ -9,6 +9,7 @@ const STORAGE_KEY = 'lang';
 // Arabic uses Latin digits, as is usual in Mauritania.
 const intlLocale: Record<Lang, string> = { fr: 'fr-FR', ar: 'ar-MR-u-nu-latn' };
 export const CURRENCY = 'MRU';
+export const TIME_ZONE = 'Africa/Nouakchott';
 
 @Injectable({ providedIn: 'root' })
 export class I18nService {
@@ -66,7 +67,8 @@ export class I18nService {
       short: { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' },
       long: { weekday: 'long', day: 'numeric', month: 'long' },
     };
-    return new Intl.DateTimeFormat(this.locale(), options[format]).format(new Date(value));
+    // the business runs on Nouakchott time (UTC+0), whatever the browser's zone
+    return new Intl.DateTimeFormat(this.locale(), { ...options[format], timeZone: TIME_ZONE }).format(new Date(value));
   }
 
   private readStoredLang(): Lang {

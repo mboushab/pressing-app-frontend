@@ -1,0 +1,249 @@
+@if (order(); as o) {
+  <div class="space-y-4">
+    <!-- summary -->
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="labels.statusTone(o.status)">
+        {{ labels.status(o.status) }}
+      </span>
+      <span class="text-sm text-slate-600">{{ labels.pickupMode(o.pickup_mode) }} · {{ labels.returnMode(o.return_mode) }}</span>
+    </div>
+
+    <div [class]="classNames.card + ' p-4 text-sm'">
+      <p class="font-semibold text-slate-800">{{ o.customer.name || ('order.no_name' | t) }}</p>
+      <a class="text-cyan-700 hover:underline" dir="ltr" [href]="'tel:' + o.customer.phone">{{ o.customer.phone }}</a>
+      @if (o.slots.pickup; as s) {
+        <p class="mt-2 text-slate-600">
+          <mat-icon class="!text-[16px] !size-4 align-middle">local_shipping</mat-icon>
+          {{ 'order.pickup_at' | t }} {{ s.starts_at | appDate: 'short' }}
+          @if (o.pickup_address; as a) {
+            — {{ a.address_text }}@if (a.landmark) { ({{ a.landmark }}) }
+          }
+        </p>
+      }
+      @if (o.slots.return; as s) {
+        <p class="mt-1 text-slate-600">
+          <mat-icon class="!text-[16px] !size-4 align-middle">home</mat-icon>
+          {{ 'order.return_at' | t }} {{ s.starts_at | appDate: 'short' }}
+        </p>
+      }
+      @if (o.note) {
+        <p class="mt-2 rounded bg-slate-50 px-2 py-1 text-slate-600">« {{ o.note }} »</p>
+      }
+    </div>
+
+    @if (error(); as message) {
+      <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ message }}</p>
+    }
+
+    <!-- open issues -->
+    @for (issue of openIssues(); track issue.id) {
+      <div class="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm">
+        <p class="flex items-center gap-1.5 font-semibold text-orange-800">
+          <mat-icon class="!text-[18px] !size-5">warning</mat-icon> {{ labels.issue(issue.type) }}
+        </p>
+        <p class="mt-0.5 text-orange-900">{{ issueDetails(issue) }}</p>
+        @if (issue.type !== 'COUNT_MISMATCH') {
+          <button type="button" class="mt-2 text-sm font-medium text-orange-800 underline cursor-pointer" (click)="openPrompt({ kind: 'issue', issue })">
+            {{ 'order.issue_resolve' | t }}
+          </button>
+        }
+      </div>
+    }
+
+    <!-- the next action -->
+    <div [class]="classNames.card + ' p-4'">
+      <h3 class="mb-3 font-semibold text-slate-800">{{ 'order.next_step' | t }}</h3>
+      @let h = pending();
+
+      @if (h?.kind === 'CUSTOMER_TO_CENTER' || countIssue()) {
+        <!-- articles: counted with the customer at the counter, or settled after a count difference -->
+        <p class="mb-2 text-sm text-slate-600">
+          {{ (countIssue() ? 'order.settle_hint' : 'order.count_hint') | t }}
+        </p>
+        <div class="space-y-1.5">
+          @for (c of counts(); track c.clothes_id; let i = $index) {
+            <div class="flex items-center gap-2 text-sm">
+              <span class="flex-1">{{ priceName(c.clothes_id) }}</span>
+              <input
+                type="number"
+                min="0"
+                class="w-20 rounded-lg border border-slate-300 px-2 py-1 text-end"
+                [ngModel]="c.quantity"
+                (ngModelChange)="setQuantity(i, $event)"
+                [attr.aria-label]="priceName(c.clothes_id)"
+              />
+            </div>
+          }
+        </div>
+        <select
+          class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm"
+          [attr.aria-label]="'order.add_article' | t"
+          (change)="addArticle($any($event.target).value); $any($event.target).value = ''"
+        >
+          <option value="">+ {{ 'order.add_article' | t }}</option>
+          @for (p of prices(); track p.id) {
+            <option [value]="p.id">{{ p.name }} — {{ p.price | money }}</option>
+          }
+        </select>
+        <p class="mt-2 text-sm font-medium text-slate-700">{{ 'order.pieces' | t: { count: countTotal() } }}</p>
+      }
+
+      @if (countIssue()) {
+        <label class="mt-3 block text-sm font-medium text-slate-700" for="settle-resolution">{{ 'order.resolution' | t }}</label>
+        <textarea id="settle-resolution" rows="2" [class]="classNames.input" [ngModel]="resolution()" (ngModelChange)="resolution.set($event)"></textarea>
+        <button type="button" [class]="classNames.buttonPrimary + ' mt-2 w-full'" [disabled]="busy()" (click)="settleCount()">
+          {{ 'order.settle' | t }}
+        </button>
+      } @else if (h?.kind === 'CUSTOMER_TO_CENTER') {
+        @if (h!.item_count === null) {
+          <button type="button" [class]="classNames.buttonPrimary + ' mt-3 w-full'" [disabled]="busy() || countTotal() === 0" (click)="countAtCounter(h!)">
+            {{ 'order.count_confirm' | t }}
+          </button>
+        } @else {
+          <p class="mt-3 text-sm text-slate-600">{{ 'order.ask_pin' | t: { count: h!.item_count, total: (o.items_total | money) } }}</p>
+          <div class="mt-2 flex gap-2">
+            <input inputmode="numeric" maxlength="4" [class]="classNames.input + ' tracking-[0.5em] text-center'" dir="ltr" [attr.aria-label]="'order.pin' | t" [ngModel]="pin()" (ngModelChange)="pin.set($event)" />
+            <button type="button" [class]="classNames.buttonPrimary" [disabled]="busy()" (click)="confirmPin(h!)">{{ 'order.pin_confirm' | t }}</button>
+          </div>
+          <button type="button" class="mt-2 block text-xs text-cyan-700 underline cursor-pointer" (click)="countAtCounter(h!)">{{ 'order.recount' | t }}</button>
+        }
+      } @else if (h?.kind === 'COURIER_TO_CENTER') {
+        <p class="text-sm text-slate-600">{{ 'order.receive_hint' | t: { count: o.picked_count ?? 0 } }}</p>
+        <div class="mt-2 flex gap-2">
+          <input type="number" min="0" [class]="classNames.input" [attr.aria-label]="'order.received_count' | t" [ngModel]="receivedCount()" (ngModelChange)="receivedCount.set($event)" />
+          <button type="button" [class]="classNames.buttonPrimary" [disabled]="busy()" (click)="receive()">{{ 'order.receive' | t }}</button>
+        </div>
+      } @else if (h?.kind === 'CENTER_TO_CUSTOMER') {
+        <p class="text-sm text-slate-600">{{ 'order.collect_hint' | t }}</p>
+        @if (o.cleaning_payment?.status !== 'paid') {
+          <p class="mt-1 text-sm font-medium text-orange-700">{{ 'order.cleaning_unpaid' | t }}</p>
+        }
+        <div class="mt-2 flex gap-2">
+          <input inputmode="numeric" maxlength="4" [class]="classNames.input + ' tracking-[0.5em] text-center'" dir="ltr" [attr.aria-label]="'order.pin' | t" [ngModel]="pin()" (ngModelChange)="pin.set($event)" />
+          <button type="button" [class]="classNames.buttonPrimary" [disabled]="busy()" (click)="confirmPin(h!)">{{ 'order.pin_confirm' | t }}</button>
+        </div>
+      } @else if (h?.kind === 'CENTER_TO_COURIER') {
+        <p class="text-sm text-slate-600">{{ 'order.hand_hint' | t: { courier: o.missions.at(-1)?.courier_name ?? '' } }}</p>
+        <button type="button" [class]="classNames.buttonPrimary + ' mt-2 w-full'" [disabled]="busy()" (click)="handToCourier()">
+          {{ 'order.hand_to_courier' | t }}
+        </button>
+      } @else if (o.status === 'RECEIVED') {
+        <button type="button" [class]="classNames.buttonPrimary + ' w-full'" [disabled]="busy()" (click)="step('IN_PROGRESS')">
+          {{ 'order.start_cleaning' | t }}
+        </button>
+      } @else if (o.status === 'IN_PROGRESS') {
+        <button type="button" [class]="classNames.buttonPrimary + ' w-full'" [disabled]="busy()" (click)="step('READY')">
+          {{ 'order.mark_ready' | t }}
+        </button>
+      } @else {
+        <p class="text-sm text-slate-600">{{ waiting(o.status) }}</p>
+      }
+
+      @if (h && isAdmin && h.kind !== 'CENTER_TO_COURIER' && !needsCount(h)) {
+        <button type="button" class="mt-3 block text-xs text-slate-500 underline cursor-pointer" (click)="openPrompt({ kind: 'manual', handover: h })">
+          {{ 'order.manual' | t }}
+        </button>
+      }
+    </div>
+
+    <!-- reason asked for a cancellation, an issue or a handover without code -->
+    @if (prompt(); as p) {
+      <div [class]="classNames.card + ' p-4'">
+        <label class="block text-sm font-medium text-slate-700" for="prompt-text">
+          {{ (p.kind === 'cancel' ? 'order.cancel_reason' : p.kind === 'issue' ? 'order.resolution' : 'order.manual_reason') | t }}
+        </label>
+        <textarea id="prompt-text" rows="2" [class]="classNames.input" [ngModel]="promptText()" (ngModelChange)="promptText.set($event)"></textarea>
+        @if (p.kind === 'manual' && p.handover.kind === 'COURIER_TO_CENTER') {
+          <label class="mt-2 block text-sm font-medium text-slate-700" for="prompt-count">{{ 'order.received_count' | t }}</label>
+          <input id="prompt-count" type="number" min="0" [class]="classNames.input" [ngModel]="promptCount()" (ngModelChange)="promptCount.set($event)" />
+        }
+        <div class="mt-2 flex justify-end gap-2">
+          <button type="button" [class]="classNames.buttonSecondary" (click)="prompt.set(null)">{{ 'common.cancel' | t }}</button>
+          <button type="button" [class]="p.kind === 'cancel' ? classNames.buttonDanger : classNames.buttonPrimary" [disabled]="busy()" (click)="submitPrompt()">
+            {{ 'common.confirm' | t }}
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (o.pending_change; as change) {
+      <div class="rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm">
+        <p class="font-semibold text-cyan-900">{{ 'order.change_title' | t }}</p>
+        <p class="text-cyan-900">{{ 'order.change_message' | t: { mode: labels.returnMode(change.return_mode) } }}</p>
+        <div class="mt-2 flex gap-2">
+          <button type="button" [class]="classNames.buttonPrimary" [disabled]="busy()" (click)="decideChange(true)">{{ 'order.change_approve' | t }}</button>
+          <button type="button" [class]="classNames.buttonSecondary" [disabled]="busy()" (click)="decideChange(false)">{{ 'order.change_reject' | t }}</button>
+        </div>
+      </div>
+    }
+
+    <!-- articles and money -->
+    <div [class]="classNames.card + ' p-4 text-sm'">
+      <table class="w-full">
+        <tbody>
+          @for (item of o.items; track item.name) {
+            <tr>
+              <td class="py-0.5">{{ item.quantity }} × {{ item.name }}</td>
+              <td class="py-0.5 text-end tabular-nums">{{ item.line_total | money }}</td>
+            </tr>
+          }
+          <tr class="border-t border-slate-100 font-semibold">
+            <td class="pt-1.5">{{ 'order.cleaning' | t }}</td>
+            <td class="pt-1.5 text-end tabular-nums">{{ o.items_total | money }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="mt-1 text-slate-600">
+        {{ 'order.cleaning_payment' | t }} :
+        {{ cleaningPayment(o) }}
+      </p>
+      <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-2">
+        <span>{{ 'order.delivery_fees' | t }} ({{ o.pickup_fee | money }} + {{ o.return_fee | money }})</span>
+        <span class="font-semibold tabular-nums">{{ o.delivery_fee_total | money }}</span>
+      </div>
+      <p class="text-slate-600">{{ labels.feeStatus(o.delivery_fee_status) }}</p>
+
+      @if (feeDue() > 0 && o.status !== 'CANCELLED') {
+        <div class="mt-3 rounded-lg bg-slate-50 p-3">
+          <p class="mb-2 font-medium text-slate-700">{{ 'order.fee_record' | t }}</p>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="number" min="0" [class]="classNames.input" [attr.aria-label]="'delivery.fee_amount' | t" [ngModel]="payment().amount" (ngModelChange)="updatePayment({ amount: $event })" />
+            <select [class]="classNames.input" [attr.aria-label]="'order.method_label' | t" [ngModel]="payment().method" (ngModelChange)="updatePayment({ method: $event })">
+              @for (m of methods; track m) {
+                <option [value]="m">{{ labels.method(m) }}</option>
+              }
+            </select>
+          </div>
+          <input [class]="classNames.input + ' mt-2'" [placeholder]="'order.reference' | t" [ngModel]="payment().reference" (ngModelChange)="updatePayment({ reference: $event })" />
+          <button type="button" [class]="classNames.buttonSecondary + ' mt-2 w-full'" [disabled]="busy()" (click)="recordPayment()">
+            {{ 'order.fee_record' | t }}
+          </button>
+        </div>
+      }
+    </div>
+
+    @if (o.status === 'REQUESTED' || o.status === 'PICKUP_ASSIGNED') {
+      <button type="button" class="text-sm text-red-700 underline cursor-pointer" (click)="openPrompt({ kind: 'cancel' })">
+        {{ 'order.cancel' | t }}
+      </button>
+    }
+
+    <!-- history -->
+    <details class="text-sm">
+      <summary class="cursor-pointer font-medium text-slate-700">{{ 'order.history' | t }}</summary>
+      <ol class="mt-2 space-y-1 border-s-2 border-slate-200 ps-3">
+        @for (e of o.timeline; track $index) {
+          <li>
+            <span class="text-slate-500">{{ e.created_at | appDate: 'short' }}</span> —
+            {{ e.to_status ? labels.status(e.to_status) : labels.event(e.type) }}
+            @if (e.note) {
+              <span class="text-slate-500">« {{ e.note }} »</span>
+            }
+          </li>
+        }
+      </ol>
+    </details>
+  </div>
+} @else {
+  <p class="text-sm text-slate-500">{{ error() ?? ('common.loading' | t) }}</p>
+}

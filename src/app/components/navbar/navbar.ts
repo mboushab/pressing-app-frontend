@@ -26,10 +26,14 @@ export class Navbar {
       ? [{ path: '/app/home', label: 'nav.dashboard' as TranslationKey, icon: 'dashboard' }]
       : []),
     { path: '/app/invoices', label: 'nav.invoices', icon: 'receipt_long' },
+    { path: '/app/orders', label: 'nav.orders', icon: 'smartphone' },
     { path: '/app/clients', label: 'nav.clients', icon: 'group' },
     { path: '/app/clothes', label: 'nav.prices', icon: 'checkroom' },
     ...(this.isAdmin
       ? [{ path: '/app/users', label: 'nav.users' as TranslationKey, icon: 'manage_accounts' }]
+      : []),
+    ...(this.userService.isPlatformAdmin()
+      ? [{ path: '/app/delivery', label: 'nav.delivery' as TranslationKey, icon: 'local_shipping' }]
       : []),
   ];
 

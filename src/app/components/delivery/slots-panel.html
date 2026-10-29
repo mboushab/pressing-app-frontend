@@ -1,0 +1,244 @@
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+  <div class="flex items-center gap-1">
+    <button
+      type="button"
+      [class]="classNames.iconButton"
+      [title]="'delivery.previous_week' | t"
+      [attr.aria-label]="'delivery.previous_week' | t"
+      (click)="moveWeek(-1)"
+    >
+      <mat-icon class="rtl:-scale-x-100">chevron_left</mat-icon>
+    </button>
+    <span class="min-w-48 text-center font-medium text-slate-800">{{ weekLabel() }}</span>
+    <button
+      type="button"
+      [class]="classNames.iconButton"
+      [title]="'delivery.next_week' | t"
+      [attr.aria-label]="'delivery.next_week' | t"
+      (click)="moveWeek(1)"
+    >
+      <mat-icon class="rtl:-scale-x-100">chevron_right</mat-icon>
+    </button>
+    <button type="button" class="ms-1 text-sm text-cyan-700 hover:underline cursor-pointer" (click)="thisWeek()">
+      {{ 'delivery.this_week' | t }}
+    </button>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <div class="flex gap-1" role="group" [attr.aria-label]="'delivery.kind.label' | t">
+      @for (k of kinds; track k.key) {
+        <button
+          type="button"
+          class="rounded-full border px-3 py-1 text-sm cursor-pointer"
+          [class]="
+            kind() === k.key
+              ? 'border-slate-700 bg-slate-700 text-white'
+              : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+          "
+          [attr.aria-pressed]="kind() === k.key"
+          (click)="kind.set(k.key)"
+        >
+          {{ k.label | t }}
+        </button>
+      }
+    </div>
+    <button type="button" [class]="classNames.buttonPrimary" (click)="openForm()">
+      <mat-icon>add</mat-icon> {{ 'delivery.generate' | t }}
+    </button>
+  </div>
+</div>
+
+<div class="space-y-3">
+  @for (day of days(); track day.date) {
+    <div [class]="classNames.card">
+      <h2 class="border-b border-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 first-letter:uppercase">
+        {{ dayLabel(day.date) }}
+      </h2>
+      @for (slot of day.slots; track slot.id) {
+        <div
+          class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-slate-100 px-4 py-2.5 last:border-b-0"
+          [class.opacity-60]="isPast(slot)"
+        >
+          <span class="w-28 font-medium text-slate-800 tabular-nums" dir="ltr">{{ timeLabel(slot) }}</span>
+          <span
+            class="rounded-full px-2 py-0.5 text-xs font-medium"
+            [class]="slot.kind === 'PICKUP' ? 'bg-sky-100 text-sky-800' : 'bg-violet-100 text-violet-800'"
+          >
+            {{ kindLabel(slot.kind) }}
+          </span>
+          <span class="flex items-center gap-2 text-sm text-slate-600">
+            <span class="h-2 w-20 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+              <span
+                class="block h-2 rounded-full"
+                [class]="slot.reserved_count >= slot.capacity ? 'bg-orange-500' : 'bg-cyan-600'"
+                [style.width.%]="(slot.reserved_count / slot.capacity) * 100"
+              ></span>
+            </span>
+            {{ 'delivery.places' | t: { reserved: slot.reserved_count, capacity: slot.capacity } }}
+          </span>
+          @if (slot.status === 'CLOSED') {
+            <span class="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
+              {{ 'delivery.closed' | t }}
+            </span>
+          }
+          <span class="ms-auto flex items-center">
+            <button
+              type="button"
+              [class]="classNames.iconButton"
+              [title]="'delivery.capacity_title' | t"
+              [attr.aria-label]="'delivery.capacity_title' | t"
+              (click)="changeCapacity(slot)"
+            >
+              <mat-icon>group</mat-icon>
+            </button>
+            <button
+              type="button"
+              [class]="classNames.iconButton"
+              [title]="(slot.status === 'OPEN' ? 'delivery.close' : 'delivery.reopen') | t"
+              [attr.aria-label]="(slot.status === 'OPEN' ? 'delivery.close' : 'delivery.reopen') | t"
+              (click)="toggleStatus(slot)"
+            >
+              <mat-icon>{{ slot.status === 'OPEN' ? 'block' : 'lock_open' }}</mat-icon>
+            </button>
+            @if (slot.reserved_count === 0) {
+              <button
+                type="button"
+                [class]="classNames.iconButtonDanger"
+                [title]="'common.delete' | t"
+                [attr.aria-label]="'common.delete' | t"
+                (click)="remove(slot)"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            }
+          </span>
+        </div>
+      } @empty {
+        <p class="px-4 py-3 text-sm text-slate-400">
+          {{ (loaded() ? 'delivery.no_slots' : 'common.loading') | t }}
+        </p>
+      }
+    </div>
+  }
+</div>
+<p class="mt-3 text-xs text-slate-500">{{ 'delivery.timezone_note' | t }}</p>
+
+@if (showForm()) {
+  <app-drawer [title]="'delivery.generate' | t" (closed)="showForm.set(false)">
+    <form [formGroup]="form" (ngSubmit)="generate()" class="space-y-5">
+      <fieldset>
+        <legend [class]="classNames.label">{{ 'delivery.kind.label' | t }}</legend>
+        <div class="grid grid-cols-2 gap-2">
+          @for (k of slotKinds; track k) {
+            <label
+              class="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+              [class]="form.value.kind === k ? 'border-cyan-600 bg-cyan-50' : 'border-slate-300 bg-white'"
+            >
+              <input type="radio" formControlName="kind" [value]="k" class="accent-cyan-700" />
+              {{ kindLabel(k) }}
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label for="slots-from" [class]="classNames.label">{{ 'delivery.from' | t }}</label>
+          <input id="slots-from" type="date" formControlName="from" [class]="classNames.input" />
+        </div>
+        <div>
+          <label for="slots-to" [class]="classNames.label">{{ 'delivery.to' | t }}</label>
+          <input id="slots-to" type="date" formControlName="to" [class]="classNames.input" />
+        </div>
+      </div>
+
+      <fieldset>
+        <legend [class]="classNames.label">{{ 'delivery.weekdays' | t }}</legend>
+        <div class="flex flex-wrap gap-1.5">
+          @for (weekday of weekOrder; track weekday) {
+            <button
+              type="button"
+              class="min-w-12 rounded-lg border px-2 py-1.5 text-sm cursor-pointer"
+              [class]="
+                selectedWeekdays().has(weekday)
+                  ? 'border-cyan-700 bg-cyan-700 text-white'
+                  : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+              "
+              [attr.aria-pressed]="selectedWeekdays().has(weekday)"
+              (click)="toggleWeekday(weekday)"
+            >
+              {{ weekdayLabel(weekday) }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset formArrayName="times">
+        <legend [class]="classNames.label">{{ 'delivery.times' | t }}</legend>
+        <div class="space-y-2">
+          @for (range of times.controls; track range; let i = $index) {
+            <div class="flex items-center gap-2" [formGroupName]="i">
+              <input
+                type="time"
+                formControlName="start"
+                [class]="classNames.input"
+                [attr.aria-label]="'delivery.start' | t"
+              />
+              <span class="text-slate-400">–</span>
+              <input
+                type="time"
+                formControlName="end"
+                [class]="classNames.input"
+                [attr.aria-label]="'delivery.end' | t"
+              />
+              <button
+                type="button"
+                [class]="classNames.iconButtonDanger"
+                [title]="'common.delete' | t"
+                [attr.aria-label]="'common.delete' | t"
+                [disabled]="times.length === 1"
+                (click)="removeTime(i)"
+              >
+                <mat-icon>remove_circle_outline</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+        <button type="button" class="mt-2 text-sm text-cyan-700 hover:underline cursor-pointer" (click)="addTime()">
+          + {{ 'delivery.add_time' | t }}
+        </button>
+      </fieldset>
+
+      <div>
+        <label for="slots-capacity" [class]="classNames.label">{{ 'delivery.capacity' | t }}</label>
+        <input
+          id="slots-capacity"
+          type="number"
+          min="1"
+          max="1000"
+          step="1"
+          formControlName="capacity"
+          [class]="classNames.input"
+        />
+        <p class="mt-1 text-xs text-slate-500">{{ 'delivery.capacity_hint' | t }}</p>
+        @if (form.controls.capacity.invalid && form.controls.capacity.touched) {
+          <p [class]="classNames.fieldError">{{ 'delivery.capacity_error' | t }}</p>
+        }
+      </div>
+
+      <p class="text-xs text-slate-500">{{ 'delivery.generate_hint' | t }}</p>
+
+      @if (formError(); as error) {
+        <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ error | t }}</p>
+      }
+      <div class="flex justify-end gap-2">
+        <button type="button" [class]="classNames.buttonSecondary" (click)="showForm.set(false)">
+          {{ 'common.cancel' | t }}
+        </button>
+        <button type="submit" [class]="classNames.buttonPrimary" [disabled]="saving()">
+          {{ (saving() ? 'common.saving' : 'delivery.generate') | t }}
+        </button>
+      </div>
+    </form>
+  </app-drawer>
+}
