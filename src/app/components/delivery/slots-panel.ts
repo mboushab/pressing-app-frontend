@@ -1,8 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIcon } from '@angular/material/icon';
 import { DeliveryService } from '../../services/delivery-service';
-import { UserService } from '../../services/user-sevice';
 import { DeliverySlot, SlotKind } from '../../types/delivery';
 import { classNames } from '../../shared/styles/class-names';
 import { ToastService } from '../../shared/toast/toast.service';
@@ -28,12 +27,13 @@ const mondayOf = (date: Date) => {
 })
 export class SlotsPanel {
   private readonly delivery = inject(DeliveryService);
-  private readonly centerId = inject(UserService).getCenterId();
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly i18n = inject(I18nService);
   private readonly fb = inject(FormBuilder);
 
+  /** Pressing whose set-up is shown, chosen on the delivery page. */
+  readonly centerId = input<string | null>(null);
   readonly classNames = classNames;
   readonly weekStart = signal(mondayOf(new Date()));
   readonly kind = signal<SlotKind | 'ALL'>('ALL');
@@ -86,8 +86,11 @@ export class SlotsPanel {
   });
 
   constructor() {
-    if (this.centerId) this.load();
-    else this.loaded.set(true);
+    // reload when the platform admin picks another pressing
+    effect(() => {
+      if (this.centerId()) untracked(() => this.load());
+      else this.loaded.set(true);
+    });
   }
 
   get times(): FormArray {
@@ -97,7 +100,7 @@ export class SlotsPanel {
   load(): void {
     const from = isoDay(this.weekStart());
     const to = isoDay(new Date(this.weekStart().getTime() + 6 * DAY_MS));
-    this.delivery.getSlots(this.centerId!, from, to).subscribe({
+    this.delivery.getSlots(this.centerId()!, from, to).subscribe({
       next: (slots) => {
         this.slots.set(slots);
         this.loaded.set(true);
@@ -258,7 +261,7 @@ export class SlotsPanel {
   async generate(): Promise<void> {
     const value = this.form.getRawValue();
     const times = (value.times as { start: string; end: string }[]).filter((t) => t.start && t.end);
-    if (this.form.invalid || !this.centerId) {
+    if (this.form.invalid || !this.centerId()) {
       this.form.markAllAsTouched();
       return;
     }
@@ -284,7 +287,7 @@ export class SlotsPanel {
     this.saving.set(true);
     this.delivery
       .generateSlots({
-        center_id: this.centerId,
+        center_id: this.centerId()!,
         kind: value.kind!,
         from: value.from!,
         to: value.to!,

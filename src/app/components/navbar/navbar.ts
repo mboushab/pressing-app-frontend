@@ -20,20 +20,30 @@ export class Navbar {
 
   readonly isAdmin = this.userService.isAdmin();
   readonly username = this.userService.getUsername();
+  readonly home = this.userService.homePath();
 
   readonly links: { path: string; label: TranslationKey; icon: string }[] = [
-    ...(this.isAdmin
-      ? [{ path: '/app/home', label: 'nav.dashboard' as TranslationKey, icon: 'dashboard' }]
+    // pages of the pressing the user belongs to
+    ...(this.userService.hasCenter()
+      ? [
+          ...(this.isAdmin
+            ? [{ path: '/app/home', label: 'nav.dashboard' as TranslationKey, icon: 'dashboard' }]
+            : []),
+          { path: '/app/invoices', label: 'nav.invoices' as TranslationKey, icon: 'receipt_long' },
+          { path: '/app/orders', label: 'nav.orders' as TranslationKey, icon: 'smartphone' },
+          { path: '/app/clients', label: 'nav.clients' as TranslationKey, icon: 'group' },
+          { path: '/app/clothes', label: 'nav.prices' as TranslationKey, icon: 'checkroom' },
+          ...(this.isAdmin
+            ? [{ path: '/app/users', label: 'nav.users' as TranslationKey, icon: 'manage_accounts' }]
+            : []),
+        ]
       : []),
-    { path: '/app/invoices', label: 'nav.invoices', icon: 'receipt_long' },
-    { path: '/app/orders', label: 'nav.orders', icon: 'smartphone' },
-    { path: '/app/clients', label: 'nav.clients', icon: 'group' },
-    { path: '/app/clothes', label: 'nav.prices', icon: 'checkroom' },
-    ...(this.isAdmin
-      ? [{ path: '/app/users', label: 'nav.users' as TranslationKey, icon: 'manage_accounts' }]
-      : []),
+    // pages of the platform admin
     ...(this.userService.isPlatformAdmin()
-      ? [{ path: '/app/delivery', label: 'nav.delivery' as TranslationKey, icon: 'local_shipping' }]
+      ? [
+          { path: '/app/pressings', label: 'nav.centers' as TranslationKey, icon: 'store' },
+          { path: '/app/delivery', label: 'nav.delivery' as TranslationKey, icon: 'local_shipping' },
+        ]
       : []),
   ];
 

@@ -31,8 +31,9 @@ export class LoginComponent {
   });
 
   constructor() {
-    if (this.authService.isAuthenticated()) {
-      void this.router.navigate(['/app/home']);
+    const home = this.userService.homePath();
+    if (this.authService.isAuthenticated() && home !== '/login') {
+      void this.router.navigateByUrl(home);
     }
   }
 
@@ -51,8 +52,7 @@ export class LoginComponent {
         localStorage.setItem('currentUserRole', res.role);
         localStorage.setItem('currentUsername', username);
         this.userService.setCenters(res.centers ?? []);
-        // the dashboard is for pressing admins; employees start on the invoices
-        void this.router.navigate([this.userService.isAdmin() ? '/app/home' : '/app/invoices']);
+        void this.router.navigateByUrl(this.userService.homePath());
       },
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);

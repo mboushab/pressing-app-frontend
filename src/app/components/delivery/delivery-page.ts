@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { MatIcon } from '@angular/material/icon';
 import { I18N_PIPES } from '../../shared/i18n/i18n.pipes';
 import { classNames } from '../../shared/styles/class-names';
@@ -7,6 +7,9 @@ import { FeesPanel } from './fees-panel';
 import { MissionsPanel } from './missions-panel';
 import { CouriersPanel } from './couriers-panel';
 import { IssuesPanel } from './issues-panel';
+import { CentersService } from '../../services/centers-service';
+import { UserService } from '../../services/user-sevice';
+import { Center } from '../../types/centers';
 
 /** Delivery set-up of the platform admin: slots with their capacity, and delivery fees. */
 @Component({
@@ -41,15 +44,27 @@ import { IssuesPanel } from './issues-panel';
         }
       </div>
 
+      <!-- slots and fees belong to one pressing -->
+      @if ((tab() === 'slots' || tab() === 'fees') && centers().length > 1) {
+        <div class="mb-4 max-w-xs">
+          <label for="delivery-center" [class]="classNames.label">{{ 'delivery.center' | t }}</label>
+          <select id="delivery-center" [class]="classNames.input" [value]="centerId()" (change)="centerId.set($any($event.target).value)">
+            @for (c of centers(); track c.id) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </div>
+      }
+
       @switch (tab()) {
         @case ('missions') {
           <app-missions-panel />
         }
         @case ('slots') {
-          <app-slots-panel />
+          <app-slots-panel [centerId]="centerId()" />
         }
         @case ('fees') {
-          <app-fees-panel />
+          <app-fees-panel [centerId]="centerId()" />
         }
         @case ('couriers') {
           <app-couriers-panel />
@@ -63,6 +78,9 @@ import { IssuesPanel } from './issues-panel';
 })
 export class DeliveryPage {
   readonly classNames = classNames;
+  readonly centers = signal<Center[]>([]);
+  /** Pressing whose slots and fees are shown: the user's own, else the first active one. */
+  readonly centerId = signal<string | null>(inject(UserService).getCenterId());
   readonly tab = signal<'missions' | 'slots' | 'fees' | 'couriers' | 'issues'>('missions');
   readonly tabs = [
     { key: 'missions', label: 'delivery.tab.missions', icon: 'route' },
@@ -71,4 +89,14 @@ export class DeliveryPage {
     { key: 'couriers', label: 'delivery.tab.couriers', icon: 'two_wheeler' },
     { key: 'issues', label: 'delivery.tab.issues', icon: 'warning' },
   ] as const;
+
+  constructor() {
+    inject(CentersService)
+      .list()
+      .subscribe((centers) => {
+        const active = centers.filter((c) => c.status === 'ACTIVE');
+        this.centers.set(active);
+        if (!active.some((c) => c.id === this.centerId())) this.centerId.set(active[0]?.id ?? null);
+      });
+  }
 }

@@ -1,8 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIcon } from '@angular/material/icon';
 import { DeliveryService } from '../../services/delivery-service';
-import { UserService } from '../../services/user-sevice';
 import { FeeRule, SlotKind } from '../../types/delivery';
 import { classNames } from '../../shared/styles/class-names';
 import { ToastService } from '../../shared/toast/toast.service';
@@ -23,11 +22,12 @@ import { I18nService, TranslationKey } from '../../shared/i18n/i18n.service';
 })
 export class FeesPanel {
   private readonly delivery = inject(DeliveryService);
-  private readonly centerId = inject(UserService).getCenterId();
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly i18n = inject(I18nService);
 
+  /** Pressing whose set-up is shown, chosen on the delivery page. */
+  readonly centerId = input<string | null>(null);
   readonly classNames = classNames;
   readonly legs: SlotKind[] = ['PICKUP', 'RETURN'];
   readonly current = signal<Partial<Record<SlotKind, FeeRule>>>({});
@@ -45,12 +45,17 @@ export class FeesPanel {
   });
 
   constructor() {
-    this.load();
+    // reload when the platform admin picks another pressing
+    effect(() => {
+      this.centerId();
+      untracked(() => this.load());
+    });
   }
 
   load(): void {
-    if (!this.centerId) return this.loaded.set(true);
-    this.delivery.getFeeRules(this.centerId).subscribe({
+    const centerId = this.centerId();
+    if (!centerId) return this.loaded.set(true);
+    this.delivery.getFeeRules(centerId).subscribe({
       next: ({ current, rules }) => {
         this.current.set(current ?? {});
         this.rules.set(rules);

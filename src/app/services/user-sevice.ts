@@ -33,10 +33,18 @@ export class UserService {
 
   /** Admin of the current pressing (dashboard, team, deletions). */
   isAdmin(): boolean {
-    const centerRole = localStorage.getItem(CENTER_ROLE_KEY);
-    // sessions opened before pressings existed only know the global role
-    if (centerRole === null) return this.getUserRole().toUpperCase() === 'ADMIN';
-    return centerRole === 'CENTER_ADMIN';
+    return localStorage.getItem(CENTER_ROLE_KEY) === 'CENTER_ADMIN';
+  }
+
+  /** Member of a pressing: its pages (invoices, clients, prices…) are open. */
+  hasCenter(): boolean {
+    return this.getCenterId() !== null;
+  }
+
+  /** First page after sign-in: the pressings for the platform admin, the dashboard for a pressing admin. */
+  homePath(): string {
+    if (!this.hasCenter()) return this.isPlatformAdmin() ? '/app/pressings' : '/login';
+    return this.isAdmin() ? '/app/home' : '/app/invoices';
   }
 
   /** Administrator of the whole platform (delivery slots and fees, couriers). */
