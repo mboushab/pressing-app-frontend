@@ -35,6 +35,11 @@ export const routes: Routes = [
       },
       { path: 'clothes', component: ClothesComponent, canActivate: [centerGuard] },
       { path: 'clients', component: ClientsComponent, canActivate: [centerGuard] },
+      {
+        path: 'hours',
+        loadComponent: () => import('./components/hours/hours-page').then((m) => m.HoursPage),
+        canActivate: [centerGuard],
+      },
       { path: 'users', component: UsersComponent, canActivate: [adminGuard] },
       // the platform admin's pages
       {

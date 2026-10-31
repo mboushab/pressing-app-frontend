@@ -302,6 +302,14 @@ export class OrderDetail {
     if (issue.type === 'HANDOVER_OVERDUE' || issue.type === 'PIN_LOCKED') {
       return d['kind'] ? this.labels.handover(d['kind'] as Handover['kind']) : '';
     }
+    if (issue.type === 'CENTER_CLOSED') {
+      // a delivery on a closed day, or a courier keeping the clothes until the opening
+      return d['leg'] === 'RETURN'
+        ? this.i18n.t('order.issue_closed_return', { day: this.i18n.date(`${d['day']}T12:00:00Z`, 'date') })
+        : this.i18n.t('order.issue_closed_pickup', {
+            opening: d['next_opening'] ? this.i18n.date(String(d['next_opening']), 'short') : '—',
+          });
+    }
     return '';
   }
 }

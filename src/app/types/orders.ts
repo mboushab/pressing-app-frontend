@@ -22,7 +22,13 @@ export type HandoverKind =
   | 'CENTER_TO_COURIER'
   | 'COURIER_TO_CUSTOMER'
   | 'CENTER_TO_CUSTOMER';
-export type IssueType = 'COUNT_MISMATCH' | 'HANDOVER_OVERDUE' | 'PIN_LOCKED' | 'MISSION_FAILED' | 'CUSTOMER_DISPUTE';
+export type IssueType =
+  | 'COUNT_MISMATCH'
+  | 'HANDOVER_OVERDUE'
+  | 'PIN_LOCKED'
+  | 'MISSION_FAILED'
+  | 'CUSTOMER_DISPUTE'
+  | 'CENTER_CLOSED';
 
 /** An app order in the pressing's list. Amounts are strings with 2 decimals. */
 export interface OrderSummary {
@@ -87,6 +93,9 @@ export interface OrderDetail extends Omit<OrderSummary, 'customer_name' | 'custo
   note: string | null;
   invoice_id: string | null;
   cancel_reason: string | null;
+  /** the pressing could not receive the clothes: the customer chooses another pressing or date */
+  center_unavailable_at: string | null;
+  center_unavailable_reason: string | null;
   customer: { name: string | null; phone: string };
   items: OrderItem[];
   slots: { pickup?: { starts_at: string; ends_at: string }; return?: { starts_at: string; ends_at: string } };

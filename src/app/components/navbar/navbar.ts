@@ -33,6 +33,7 @@ export class Navbar {
           { path: '/app/orders', label: 'nav.orders' as TranslationKey, icon: 'smartphone' },
           { path: '/app/clients', label: 'nav.clients' as TranslationKey, icon: 'group' },
           { path: '/app/clothes', label: 'nav.prices' as TranslationKey, icon: 'checkroom' },
+          { path: '/app/hours', label: 'nav.hours' as TranslationKey, icon: 'schedule' },
           ...(this.isAdmin
             ? [{ path: '/app/users', label: 'nav.users' as TranslationKey, icon: 'manage_accounts' }]
             : []),

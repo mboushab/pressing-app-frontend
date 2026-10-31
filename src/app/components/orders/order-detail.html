@@ -31,6 +31,12 @@
       }
     </div>
 
+    @if (o.center_unavailable_at && o.status === 'REQUESTED') {
+      <p class="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        {{ 'order.center_unavailable' | t }}@if (o.center_unavailable_reason) { — {{ o.center_unavailable_reason }} }
+      </p>
+    }
+
     @if (error(); as message) {
       <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ message }}</p>
     }
