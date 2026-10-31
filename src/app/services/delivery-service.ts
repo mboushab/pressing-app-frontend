@@ -8,22 +8,30 @@ import { Courier, Mission, OpenIssue } from '../types/orders';
 export class DeliveryService {
   private readonly http = inject(HttpClient);
 
-  /** from/to are calendar days (YYYY-MM-DD), both included. */
-  getSlots(centerId: string, from: string, to: string) {
-    const params = { center_id: centerId, from, to };
-    return this.http.get<DeliverySlot[]>('/api/admin/slots', { params });
+  // slots: any pressing for the platform admin (/api/admin), or the user's own pressing (/api/center)
+  private slotsPath(own: boolean) {
+    return own ? '/api/center/slots' : '/api/admin/slots';
+  }
+
+  /** from/to are calendar days (YYYY-MM-DD), both included; centerId null = the user's own pressing. */
+  getSlots(centerId: string | null, from: string, to: string) {
+    const params: Record<string, string> = centerId ? { center_id: centerId, from, to } : { from, to };
+    return this.http.get<DeliverySlot[]>(this.slotsPath(!centerId), { params });
   }
 
   generateSlots(body: SlotGeneration) {
-    return this.http.post<{ created: number; skipped: number }>('/api/admin/slots/generate', body);
+    return this.http.post<{ created: number; skipped: number; outside_hours: number }>(
+      `${this.slotsPath(!body.center_id)}/generate`,
+      body,
+    );
   }
 
-  updateSlot(id: string, changes: Partial<Pick<DeliverySlot, 'capacity' | 'status'>>) {
-    return this.http.patch<DeliverySlot>(`/api/admin/slots/${id}`, changes);
+  updateSlot(id: string, changes: Partial<Pick<DeliverySlot, 'capacity' | 'status'>>, own = false) {
+    return this.http.patch<DeliverySlot>(`${this.slotsPath(own)}/${id}`, changes);
   }
 
-  deleteSlot(id: string) {
-    return this.http.delete(`/api/admin/slots/${id}`);
+  deleteSlot(id: string, own = false) {
+    return this.http.delete(`${this.slotsPath(own)}/${id}`);
   }
 
   getFeeRules(centerId: string) {

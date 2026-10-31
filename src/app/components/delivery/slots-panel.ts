@@ -34,6 +34,8 @@ export class SlotsPanel {
 
   /** Pressing whose set-up is shown, chosen on the delivery page. */
   readonly centerId = input<string | null>(null);
+  /** the pressing's own slots (its admins), instead of the one given by centerId */
+  readonly own = input(false);
   readonly classNames = classNames;
   readonly weekStart = signal(mondayOf(new Date()));
   readonly kind = signal<SlotKind | 'ALL'>('ALL');
@@ -88,7 +90,7 @@ export class SlotsPanel {
   constructor() {
     // reload when the platform admin picks another pressing
     effect(() => {
-      if (this.centerId()) untracked(() => this.load());
+      if (this.own() || this.centerId()) untracked(() => this.load());
       else this.loaded.set(true);
     });
   }
@@ -100,7 +102,7 @@ export class SlotsPanel {
   load(): void {
     const from = isoDay(this.weekStart());
     const to = isoDay(new Date(this.weekStart().getTime() + 6 * DAY_MS));
-    this.delivery.getSlots(this.centerId()!, from, to).subscribe({
+    this.delivery.getSlots(this.own() ? null : this.centerId(), from, to).subscribe({
       next: (slots) => {
         this.slots.set(slots);
         this.loaded.set(true);
@@ -170,7 +172,7 @@ export class SlotsPanel {
           : this.i18n.t('delivery.places', { reserved: slot.reserved_count, capacity: value }),
     });
     if (capacity === null) return;
-    this.delivery.updateSlot(slot.id, { capacity: Math.round(capacity) }).subscribe({
+    this.delivery.updateSlot(slot.id, { capacity: Math.round(capacity) }, this.own()).subscribe({
       next: () => {
         this.toast.success(this.i18n.t('delivery.toast.updated'));
         this.load();
@@ -198,7 +200,7 @@ export class SlotsPanel {
       tone: closing ? 'danger' : 'primary',
     });
     if (!confirmed) return;
-    this.delivery.updateSlot(slot.id, { status: closing ? 'CLOSED' : 'OPEN' }).subscribe({
+    this.delivery.updateSlot(slot.id, { status: closing ? 'CLOSED' : 'OPEN' }, this.own()).subscribe({
       next: () => {
         this.toast.success(this.i18n.t('delivery.toast.updated'));
         this.load();
@@ -217,7 +219,7 @@ export class SlotsPanel {
       tone: 'danger',
     });
     if (!confirmed) return;
-    this.delivery.deleteSlot(slot.id).subscribe({
+    this.delivery.deleteSlot(slot.id, this.own()).subscribe({
       next: () => {
         this.toast.success(this.i18n.t('delivery.toast.deleted'));
         this.load();
@@ -261,7 +263,7 @@ export class SlotsPanel {
   async generate(): Promise<void> {
     const value = this.form.getRawValue();
     const times = (value.times as { start: string; end: string }[]).filter((t) => t.start && t.end);
-    if (this.form.invalid || !this.centerId()) {
+    if (this.form.invalid || (!this.own() && !this.centerId())) {
       this.form.markAllAsTouched();
       return;
     }
@@ -287,7 +289,7 @@ export class SlotsPanel {
     this.saving.set(true);
     this.delivery
       .generateSlots({
-        center_id: this.centerId()!,
+        ...(this.own() ? {} : { center_id: this.centerId()! }),
         kind: value.kind!,
         from: value.from!,
         to: value.to!,
@@ -296,9 +298,12 @@ export class SlotsPanel {
         capacity: Number(value.capacity),
       })
       .subscribe({
-        next: ({ created, skipped }) => {
+        next: ({ created, skipped, outside_hours }) => {
           this.saving.set(false);
-          this.toast.success(this.i18n.t('delivery.toast.generated', { created, skipped }));
+          const done = this.i18n.t('delivery.toast.generated', { created, skipped });
+          this.toast.success(
+            outside_hours ? `${done} ${this.i18n.t('delivery.toast.outside_hours', { count: outside_hours })}` : done,
+          );
           this.showForm.set(false);
           this.weekStart.set(mondayOf(new Date(`${value.from}T00:00:00Z`)));
           this.load();

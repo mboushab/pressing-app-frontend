@@ -13,7 +13,8 @@ export interface DeliverySlot {
 }
 
 export interface SlotGeneration {
-  center_id: string;
+  /** omitted: the user's own pressing */
+  center_id?: string;
   kind: SlotKind;
   /** YYYY-MM-DD, both included */
   from: string;
