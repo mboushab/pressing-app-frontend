@@ -6,7 +6,7 @@ import { ItemCount, OrdersService } from '../../services/orders-service';
 import { ClothesList } from '../../services/clothes-list';
 import { UserService } from '../../services/user-sevice';
 import { Clothe } from '../../types/clothes';
-import { Handover, Issue, OrderDetail as Order, PaymentMethod } from '../../types/orders';
+import { Custody, CustodyParty, Handover, Issue, OrderDetail as Order, PaymentMethod } from '../../types/orders';
 import { classNames } from '../../shared/styles/class-names';
 import { ToastService } from '../../shared/toast/toast.service';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
@@ -58,6 +58,8 @@ export class OrderDetail {
   readonly resolution = signal('');
   readonly prompt = signal<Prompt | null>(null);
   readonly promptText = signal('');
+  /** who had the clothes, loaded when the section is opened */
+  readonly custody = signal<Custody | null>(null);
   readonly promptCount = signal<number | null>(null);
   readonly payment = signal<{ amount: number | null; method: PaymentMethod; reference: string }>({
     amount: null,
@@ -88,6 +90,66 @@ export class OrderDetail {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  loadCustody(): void {
+    this.orders.custody(this.orderId()).subscribe({
+      next: (custody) => this.custody.set(custody),
+      error: () => this.toast.error(this.i18n.t('order.error.load')),
+    });
+  }
+
+  /** "Courier Ahmed (+222…)", "Pressing X — sidi", "Client Aïcha (+222…)" */
+  partyLabel(party: CustodyParty | null): string {
+    if (!party) return '—';
+    const role = this.i18n.t(`custody.party.${party.type}` as TranslationKey);
+    if (party.type === 'CENTER') return `${role} ${party.name ?? ''}${party.staff ? ` — ${party.staff}` : ''}`;
+    return `${role} ${party.name ?? ''}${party.phone ? ` (${party.phone})` : ''}`;
+  }
+
+  proofLabel(step: Custody['steps'][number]): string {
+    return this.i18n.t(`custody.proof.${step.proof}` as TranslationKey);
+  }
+
+  mapLink(location: { latitude: number; longitude: number }): string {
+    return `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
+  }
+
+  /** A printable record (complaint, police): opens in a new window and prints. */
+  printCustody(): void {
+    const order = this.order();
+    const custody = this.custody();
+    if (!order || !custody) return;
+    const esc = (value: unknown) =>
+      String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+    const rows = custody.steps
+      .map(
+        (s, i) => `<tr>
+          <td>${i + 1}</td><td>${esc(this.i18n.date(s.at, 'datetime'))}</td>
+          <td>${esc(this.partyLabel(s.from))}</td><td>${esc(this.partyLabel(s.to))}</td>
+          <td>${esc(this.proofLabel(s))}${s.note ? ` — ${esc(s.note)}` : ''}</td>
+          <td>${esc(s.item_count ?? '')}</td>
+          <td>${s.location ? `${s.location.latitude}, ${s.location.longitude}` : '—'}</td>
+          <td>${s.photos.map((p) => `<img src="${esc(p.url)}">`).join('')}</td></tr>`,
+      )
+      .join('');
+    const html = `<!doctype html><html lang="${this.i18n.lang()}" dir="${this.i18n.lang() === 'ar' ? 'rtl' : 'ltr'}">
+      <head><meta charset="utf-8"><title>${esc(this.i18n.t('custody.title'))} #${order.number}</title>
+      <style>body{font-family:system-ui,sans-serif;font-size:12px;margin:24px}table{border-collapse:collapse;width:100%}
+      th,td{border:1px solid #999;padding:4px;vertical-align:top;text-align:start}img{width:80px;margin:2px}</style></head>
+      <body><h1>${esc(this.i18n.t('custody.title'))} — #${order.number}</h1>
+      <p>${esc(this.i18n.t('custody.holder'))} : <b>${esc(this.partyLabel(custody.holder))}</b></p>
+      <p>${esc(this.i18n.t('custody.printed', { date: this.i18n.date(new Date(), 'datetime') }))}</p>
+      <table><thead><tr><th>#</th><th>${esc(this.i18n.t('custody.col.at'))}</th><th>${esc(this.i18n.t('custody.col.from'))}</th>
+      <th>${esc(this.i18n.t('custody.col.to'))}</th><th>${esc(this.i18n.t('custody.col.proof'))}</th>
+      <th>${esc(this.i18n.t('custody.col.pieces'))}</th><th>GPS</th><th>${esc(this.i18n.t('custody.col.photos'))}</th></tr></thead>
+      <tbody>${rows}</tbody></table></body></html>`;
+    const page = window.open('', '_blank');
+    if (!page) return this.toast.error(this.i18n.t('custody.popup_blocked'));
+    page.document.write(html);
+    page.document.close();
+    // print once the photos are loaded
+    page.onload = () => page.print();
   }
 
   load(): void {
@@ -302,6 +364,7 @@ export class OrderDetail {
     if (issue.type === 'HANDOVER_OVERDUE' || issue.type === 'PIN_LOCKED') {
       return d['kind'] ? this.labels.handover(d['kind'] as Handover['kind']) : '';
     }
+    if (issue.type === 'NO_COURIER') return this.i18n.t('order.issue_no_courier');
     if (issue.type === 'CENTER_CLOSED') {
       // a delivery on a closed day, or a courier keeping the clothes until the opening
       return d['leg'] === 'RETURN'

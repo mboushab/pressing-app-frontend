@@ -28,7 +28,8 @@ export type IssueType =
   | 'PIN_LOCKED'
   | 'MISSION_FAILED'
   | 'CUSTOMER_DISPUTE'
-  | 'CENTER_CLOSED';
+  | 'CENTER_CLOSED'
+  | 'NO_COURIER';
 
 /** An app order in the pressing's list. Amounts are strings with 2 decimals. */
 export interface OrderSummary {
@@ -73,6 +74,34 @@ export interface Handover {
   due_at: string | null;
 }
 
+/** Someone who had the clothes: the customer, a courier, or the pressing (with the staff member). */
+export interface CustodyParty {
+  type: 'CUSTOMER' | 'COURIER' | 'CENTER';
+  name: string | null;
+  phone?: string;
+  staff?: string | null;
+}
+
+/** One handover of the chain of custody. */
+export interface CustodyStep {
+  id: string;
+  kind: HandoverKind;
+  from: CustodyParty;
+  to: CustodyParty;
+  at: string;
+  /** PIN = customer's code, BUTTON = pressing's confirmation, MANUAL = settled by a person */
+  proof: 'PIN' | 'BUTTON' | 'MANUAL';
+  note: string | null;
+  item_count: number | null;
+  location: { latitude: number; longitude: number; accuracy_m: number | null } | null;
+  photos: { id: string; url: string; created_at: string }[];
+}
+
+export interface Custody {
+  holder: CustodyParty | null;
+  steps: CustodyStep[];
+}
+
 export interface Issue {
   id: string;
   type: IssueType;
@@ -96,6 +125,9 @@ export interface OrderDetail extends Omit<OrderSummary, 'customer_name' | 'custo
   /** the pressing could not receive the clothes: the customer chooses another pressing or date */
   center_unavailable_at: string | null;
   center_unavailable_reason: string | null;
+  /** collection as soon as possible (no slot): the courier is due at pickup_due_at */
+  pickup_asap: boolean;
+  pickup_due_at: string | null;
   customer: { name: string | null; phone: string };
   items: OrderItem[];
   slots: { pickup?: { starts_at: string; ends_at: string }; return?: { starts_at: string; ends_at: string } };

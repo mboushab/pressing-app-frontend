@@ -11,6 +11,12 @@
     <div [class]="classNames.card + ' p-4 text-sm'">
       <p class="font-semibold text-slate-800">{{ o.customer.name || ('order.no_name' | t) }}</p>
       <a class="text-cyan-700 hover:underline" dir="ltr" [href]="'tel:' + o.customer.phone">{{ o.customer.phone }}</a>
+      @if (o.pickup_asap && o.pickup_due_at) {
+        <p class="mt-2 text-slate-600">
+          <mat-icon class="!text-[16px] !size-4 align-middle">bolt</mat-icon>
+          {{ 'order.pickup_asap' | t: { time: (o.pickup_due_at | appDate: 'short') } }}
+        </p>
+      }
       @if (o.slots.pickup; as s) {
         <p class="mt-2 text-slate-600">
           <mat-icon class="!text-[16px] !size-4 align-middle">local_shipping</mat-icon>
@@ -233,6 +239,51 @@
         {{ 'order.cancel' | t }}
       </button>
     }
+
+    <!-- chain of custody: who had the clothes, step by step -->
+    <details class="text-sm" (toggle)="custody() === null && loadCustody()">
+      <summary class="cursor-pointer font-medium text-slate-700">{{ 'custody.title' | t }}</summary>
+      @if (custody(); as c) {
+        <div class="mt-2 space-y-2">
+          <p>
+            {{ 'custody.holder' | t }} : <b>{{ partyLabel(c.holder) }}</b>
+          </p>
+          <ol class="space-y-2 border-s-2 border-slate-200 ps-3">
+            @for (s of c.steps; track s.id) {
+              <li>
+                <p class="text-slate-500">{{ s.at | appDate: 'short' }} · {{ proofLabel(s) }}</p>
+                <p>{{ partyLabel(s.from) }} → <b>{{ partyLabel(s.to) }}</b></p>
+                @if (s.item_count !== null) {
+                  <p class="text-slate-500">{{ 'custody.pieces' | t: { count: s.item_count } }}</p>
+                }
+                @if (s.note) {
+                  <p class="text-slate-500">« {{ s.note }} »</p>
+                }
+                @if (s.location; as l) {
+                  <a class="text-cyan-700 hover:underline" target="_blank" rel="noopener" [href]="mapLink(l)">
+                    <mat-icon class="!text-[16px] !size-4 align-middle">location_on</mat-icon> {{ 'custody.map' | t }}
+                  </a>
+                }
+                @if (s.photos.length) {
+                  <div class="mt-1 flex flex-wrap gap-1">
+                    @for (p of s.photos; track p.id) {
+                      <a [href]="p.url" target="_blank" rel="noopener"><img [src]="p.url" alt="" class="size-16 rounded object-cover" /></a>
+                    }
+                  </div>
+                }
+              </li>
+            } @empty {
+              <li class="text-slate-500">{{ 'custody.empty' | t }}</li>
+            }
+          </ol>
+          <button type="button" [class]="classNames.buttonSecondary" (click)="printCustody()">
+            <mat-icon>print</mat-icon> {{ 'custody.print' | t }}
+          </button>
+        </div>
+      } @else {
+        <p class="mt-2 text-slate-500">{{ 'common.loading' | t }}</p>
+      }
+    </details>
 
     <!-- history -->
     <details class="text-sm">

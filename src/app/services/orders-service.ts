@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { CourierCash, OpenIssue, OrderDetail, OrderSummary, PaymentMethod } from '../types/orders';
+import { CourierCash, Custody, OpenIssue, OrderDetail, OrderSummary, PaymentMethod } from '../types/orders';
 
 export type OrderGroup = 'incoming' | 'cleaning' | 'ready' | 'done';
 export interface ItemCount {
@@ -19,6 +19,11 @@ export class OrdersService {
 
   get(id: string) {
     return this.http.get<OrderDetail>(`/api/center/orders/${id}`);
+  }
+
+  /** Who had the clothes, step by step (handovers, GPS, photos). */
+  custody(id: string) {
+    return this.http.get<Custody>(`/api/center/orders/${id}/custody`);
   }
 
   /** Reception from a courier, with the pieces counted. */
